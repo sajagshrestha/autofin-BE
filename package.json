@@ -1,0 +1,22 @@
+{
+  "name": "autfin-BE",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.91.0",
+    "hono": "^4.11.4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.12",
+    "@types/bun": "latest",
+    "husky": "^9.1.7"
+  }
+}
