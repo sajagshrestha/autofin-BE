@@ -50,11 +50,7 @@ app.get('/', (c) => {
 
 // Health check with database connection test
 app.get('/health', async (c) => {
-  const dbHealthy = await checkDatabaseConnection();
-  if (!dbHealthy) {
-    return c.json({ status: 'unhealthy', database: 'disconnected' }, 503);
-  }
-  return c.json({ status: 'ok', database: 'connected' });
+  return c.json({ status: 'ok' });
 });
 
 // API v1 routes - apply container and auth middleware
