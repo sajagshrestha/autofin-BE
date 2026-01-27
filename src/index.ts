@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { db } from '@/db/connection';
+import { checkDatabaseConnection, db } from '@/db/connection';
 import { type Container, createContainer } from '@/lib/container';
 import { createOpenAPIApp } from '@/lib/openapi';
 import type { AuthUser } from '@/middleware/auth';
@@ -45,9 +45,13 @@ app.get('/', (c) => {
   return c.json({ message: 'Hello Hono!', version: '1.0.0' });
 });
 
-// Health check
-app.get('/health', (c) => {
-  return c.json({ status: 'ok' });
+// Health check with database connection test
+app.get('/health', async (c) => {
+  const dbHealthy = await checkDatabaseConnection();
+  if (!dbHealthy) {
+    return c.json({ status: 'unhealthy', database: 'disconnected' }, 503);
+  }
+  return c.json({ status: 'ok', database: 'connected' });
 });
 
 // API v1 routes - apply container and auth middleware

@@ -1,8 +1,8 @@
 import { config } from 'dotenv';
+import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { categories } from '../src/db/schema';
-import { eq } from 'drizzle-orm';
 
 config({ path: '.env' });
 
@@ -45,9 +45,7 @@ async function seedCategories() {
 
       // Check for missing categories and add them
       const existingNames = new Set(existingCategories.map((c) => c.name));
-      const missingCategories = PREDEFINED_CATEGORIES.filter(
-        (cat) => !existingNames.has(cat.name)
-      );
+      const missingCategories = PREDEFINED_CATEGORIES.filter((cat) => !existingNames.has(cat.name));
 
       if (missingCategories.length > 0) {
         console.log(`\nAdding ${missingCategories.length} missing categories...`);

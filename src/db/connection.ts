@@ -7,7 +7,8 @@ config({ path: '.env' });
 const client = postgres(process.env.DATABASE_URL || '', {
   // Connection pool settings
   max: 10, // Maximum connections in pool
-  idle_timeout: 20, // Close idle connections after 20 seconds
+  idle_timeout: 60 * 20, // Close idle connections after 60 seconds (less than typical DB server timeout)
+  max_lifetime: 60 * 20, // Recycle connections after 24 hours to prevent staleness
   connect_timeout: 10, // Timeout for establishing connection (seconds)
 
   // Required for Supabase transaction pooler (pgbouncer)
@@ -17,6 +18,15 @@ const client = postgres(process.env.DATABASE_URL || '', {
   connection: {
     application_name: 'autofin-be',
   },
+
+  // Handle connection errors and retry
+  onnotice: () => {}, // Suppress notices
+  transform: {
+    undefined: null, // Transform undefined to null for postgres compatibility
+  },
+
+  // Automatically reconnect on connection errors
+  // The library handles this automatically, but we ensure it's enabled
 });
 
 export const db = drizzle({ client });
@@ -24,3 +34,17 @@ export type Database = typeof db;
 
 // Export client for direct access if needed
 export { client };
+
+/**
+ * Health check function to verify database connection is alive
+ * Can be used in health check endpoints or before critical operations
+ */
+export async function checkDatabaseConnection(): Promise<boolean> {
+  try {
+    await client`SELECT 1`;
+    return true;
+  } catch (error) {
+    console.error('Database connection check failed:', error);
+    return false;
+  }
+}

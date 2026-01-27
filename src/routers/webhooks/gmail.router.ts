@@ -85,8 +85,6 @@ export const createGmailWebhookRouter = () => {
         });
       }
 
-      
-
       if (!token) {
         console.warn(`No OAuth token found for email: ${gmailNotification.emailAddress}`);
         // Still return 200 to acknowledge the message to Pub/Sub
@@ -110,7 +108,9 @@ export const createGmailWebhookRouter = () => {
           gmailNotification.emailAddress,
           result.historyId
         );
-        console.log(`Updated history ID to ${result.historyId} for ${gmailNotification.emailAddress}`);
+        console.log(
+          `Updated history ID to ${result.historyId} for ${gmailNotification.emailAddress}`
+        );
       }
 
       // Return 200 OK to acknowledge the message to Pub/Sub

@@ -1,5 +1,5 @@
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
-import { type NewTransaction, type Transaction, transactions, categories } from '@/db/schema';
+import { categories, type NewTransaction, type Transaction, transactions } from '@/db/schema';
 import { BaseRepository } from './base.repository';
 
 export interface TransactionFilters {
@@ -161,9 +161,7 @@ export class TransactionRepository extends BaseRepository {
   async update(
     id: string,
     userId: string,
-    data: Partial<
-      Pick<NewTransaction, 'categoryId' | 'merchant' | 'remarks' | 'transactionDate'>
-    >
+    data: Partial<Pick<NewTransaction, 'categoryId' | 'merchant' | 'remarks' | 'transactionDate'>>
   ): Promise<Transaction | null> {
     const result = await this.db
       .update(transactions)

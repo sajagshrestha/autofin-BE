@@ -4,8 +4,8 @@ import type { Container } from '@/lib/container';
 import { createRoute } from '@/lib/openapi';
 import type { AuthUser } from '@/middleware/auth';
 import { createCategoryRouter } from './category.router';
-import { createGmailOAuthRouter } from './gmail-oauth.router';
 import { createGmailRouter } from './gmail.router';
+import { createGmailOAuthRouter } from './gmail-oauth.router';
 import { createTransactionRouter } from './transaction.router';
 import { createUserRouter } from './user.router';
 

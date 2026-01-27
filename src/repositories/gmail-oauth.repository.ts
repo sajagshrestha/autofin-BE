@@ -36,7 +36,9 @@ export class GmailOAuthRepository extends BaseRepository {
 
       const result = await Promise.race([queryPromise, timeoutPromise]);
 
-      console.log(`findByEmailAddress: Query completed in ${Date.now() - startTime}ms, found: ${result.length > 0}`);
+      console.log(
+        `findByEmailAddress: Query completed in ${Date.now() - startTime}ms, found: ${result.length > 0}`
+      );
       return result[0] || null;
     } catch (error) {
       console.error(`findByEmailAddress: Query failed after ${Date.now() - startTime}ms:`, error);

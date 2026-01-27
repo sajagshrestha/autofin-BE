@@ -246,10 +246,13 @@ export const GmailWatchRequestSchema = z.object({
     description: 'Google Cloud Pub/Sub topic name',
     example: 'projects/my-project/topics/gmail-notifications',
   }),
-  labelIds: z.array(z.string()).optional().openapi({
-    description: 'Label IDs to watch (e.g., ["INBOX", "UNREAD"])',
-    example: ['INBOX'],
-  }),
+  labelIds: z
+    .array(z.string())
+    .optional()
+    .openapi({
+      description: 'Label IDs to watch (e.g., ["INBOX", "UNREAD"])',
+      example: ['INBOX'],
+    }),
 });
 
 export type GmailWatchRequest = z.infer<typeof GmailWatchRequestSchema>;
@@ -304,12 +307,9 @@ export const GmailLabelSchema = z.object({
   messageListVisibility: z.enum(['show', 'hide']).optional().openapi({
     description: 'Visibility of messages with this label in the message list',
   }),
-  labelListVisibility: z
-    .enum(['labelShow', 'labelShowIfUnread', 'labelHide'])
-    .optional()
-    .openapi({
-      description: 'Visibility of the label in the label list',
-    }),
+  labelListVisibility: z.enum(['labelShow', 'labelShowIfUnread', 'labelHide']).optional().openapi({
+    description: 'Visibility of the label in the label list',
+  }),
   type: z.enum(['system', 'user']).openapi({
     description: 'Label type - system labels are built-in, user labels are custom',
     example: 'user',

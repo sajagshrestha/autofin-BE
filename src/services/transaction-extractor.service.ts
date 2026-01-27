@@ -34,13 +34,13 @@ function createExtractionSchema(categoryIds: string[]) {
         .min(2)
         .max(50)
         .describe('Name for the new category (2-50 characters, be specific but concise)'),
-      newCategoryIcon: z
-        .string()
-        .describe('A single emoji that represents this category'),
+      newCategoryIcon: z.string().describe('A single emoji that represents this category'),
       reason: z
         .string()
         .optional()
-        .describe('Brief explanation of why a new category is needed instead of using existing ones (optional)'),
+        .describe(
+          'Brief explanation of why a new category is needed instead of using existing ones (optional)'
+        ),
     }),
     z.object({
       action: z.literal('uncategorized'),
@@ -51,9 +51,7 @@ function createExtractionSchema(categoryIds: string[]) {
   ]);
 
   return z.object({
-    isTransaction: z
-      .boolean()
-      .describe('Whether this email is a bank transaction notification'),
+    isTransaction: z.boolean().describe('Whether this email is a bank transaction notification'),
     transaction: z
       .object({
         amount: z.number().describe('Transaction amount as a positive number'),
@@ -86,11 +84,7 @@ function createExtractionSchema(categoryIds: string[]) {
         category: categorySchema.describe(
           'Category selection: either select an existing category by ID, or create a new category if none fit well'
         ),
-        confidence: z
-          .number()
-          .min(0)
-          .max(1)
-          .describe('Confidence score for the extraction (0-1)'),
+        confidence: z.number().min(0).max(1).describe('Confidence score for the extraction (0-1)'),
       })
       .nullable()
       .describe('Extracted transaction data, null if not a transaction email'),
@@ -233,9 +227,7 @@ export class TransactionExtractorService {
     const categoryMap = new Map(availableCategories.map((c) => [c.id, c]));
 
     // Find uncategorized as fallback
-    const uncategorized = availableCategories.find(
-      (c) => c.name.toLowerCase() === 'uncategorized'
-    );
+    const uncategorized = availableCategories.find((c) => c.name.toLowerCase() === 'uncategorized');
 
     // Get category IDs for the schema enum
     const categoryIds = availableCategories.map((c) => c.id);

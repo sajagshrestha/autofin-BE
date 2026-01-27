@@ -1,5 +1,5 @@
 import { and, eq, isNull, or } from 'drizzle-orm';
-import { type Category, type NewCategory, categories } from '@/db/schema';
+import { type Category, categories, type NewCategory } from '@/db/schema';
 import { BaseRepository } from './base.repository';
 
 export class CategoryRepository extends BaseRepository {
@@ -45,11 +45,7 @@ export class CategoryRepository extends BaseRepository {
    * Find a category by ID
    */
   async findById(id: string): Promise<Category | null> {
-    const result = await this.db
-      .select()
-      .from(categories)
-      .where(eq(categories.id, id))
-      .limit(1);
+    const result = await this.db.select().from(categories).where(eq(categories.id, id)).limit(1);
     return result[0] || null;
   }
 
@@ -61,10 +57,7 @@ export class CategoryRepository extends BaseRepository {
       .select()
       .from(categories)
       .where(
-        and(
-          eq(categories.name, name),
-          or(isNull(categories.userId), eq(categories.userId, userId))
-        )
+        and(eq(categories.name, name), or(isNull(categories.userId), eq(categories.userId, userId)))
       )
       .limit(1);
     return result[0] || null;

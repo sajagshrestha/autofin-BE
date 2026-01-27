@@ -1,6 +1,6 @@
-import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAI } from '@ai-sdk/openai';
 
 export type AIProviderName = 'openai' | 'anthropic' | 'google';
 const DEFAULT_PROVIDER: AIProviderName = 'google';
