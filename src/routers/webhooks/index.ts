@@ -1,1 +1,1 @@
-export { createMakeWebhookRouter } from './make.router';
+export { createGmailWebhookRouter } from './gmail.router';

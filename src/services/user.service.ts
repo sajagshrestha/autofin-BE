@@ -1,6 +1,6 @@
-import type { Database } from '../db/connection';
-import type { NewUser, User } from '../db/schema';
-import type { UserRepository } from '../repositories/user.repository';
+import type { Database } from '@/db/connection';
+import type { NewUser, User } from '@/db/schema';
+import type { UserRepository } from '@/repositories/user.repository';
 import { BaseService } from './base.service';
 
 /**

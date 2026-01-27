@@ -1,4 +1,4 @@
-import type { Database } from '../db/connection';
+import type { Database } from '@/db/connection';
 
 export abstract class BaseService {
   constructor(protected readonly db: Database) {}

@@ -4,8 +4,8 @@
  * This shows how easy it is to create test containers with mocks
  */
 
-import type { UserRepository } from '../repositories/user.repository';
-import { UserService } from '../services/user.service';
+import type { UserRepository } from '@/repositories/user.repository';
+import { UserService } from '@/services/user.service';
 import type { Container } from './container';
 
 // Example test setup

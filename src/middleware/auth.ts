@@ -1,5 +1,5 @@
 import type { Context, Next } from 'hono';
-import supabase from '../lib/supabase';
+import supabase from '@/lib/supabase';
 
 export type AuthUser = {
   id: string;

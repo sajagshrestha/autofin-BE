@@ -1,12 +1,15 @@
 import { Hono } from 'hono';
-import { db } from './db/connection';
-import { type Container, createContainer } from './lib/container';
-import type { AuthUser } from './middleware/auth';
-import { authMiddleware } from './middleware/auth';
-import { containerMiddleware } from './middleware/container.middleware';
-import { makeAuth } from './middleware/make_auth';
-import { createV1Router } from './routers';
-import { createMakeWebhookRouter } from './routers/webhooks';
+import { cors } from 'hono/cors';
+import { db } from '@/db/connection';
+import { type Container, createContainer } from '@/lib/container';
+import { createOpenAPIApp } from '@/lib/openapi';
+import type { AuthUser } from '@/middleware/auth';
+import { authMiddleware } from '@/middleware/auth';
+import { containerMiddleware } from '@/middleware/container.middleware';
+import { gmailAuth } from '@/middleware/gmail_auth';
+import { loggerMiddleware } from '@/middleware/logger.middleware';
+import { createV1Router } from '@/routers';
+import { createGmailWebhookRouter } from '@/routers/webhooks';
 
 type Env = {
   Variables: {
@@ -16,6 +19,23 @@ type Env = {
 };
 
 const app = new Hono<Env>();
+
+// Create OpenAPI app for docs and mount it
+const openApiApp = createOpenAPIApp();
+
+// CORS middleware - allow requests from localhost:3000
+const corsMiddleware = cors({
+  origin: ['http://localhost:5173', 'http://localhost:5173/'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+});
+
+app.use('*', corsMiddleware);
+openApiApp.use('*', corsMiddleware);
+
+// Apply logger middleware globally to log all requests
+app.use('*', loggerMiddleware);
 
 // Initialize dependency injection container
 const container = createContainer(db);
@@ -34,8 +54,20 @@ app.get('/health', (c) => {
 app.use('/api/v1/*', containerMiddleware(container));
 app.use('/api/v1/*', authMiddleware);
 
-// Mount v1 router
-app.route('/api/v1', createV1Router());
+// Create v1 router (uses OpenAPIHono)
+const v1Router = createV1Router();
+
+// Mount v1 router on regular app
+app.route('/api/v1', v1Router);
+
+// Mount v1 router on OpenAPI app for documentation
+// Also apply middleware to OpenAPI app for v1 routes
+openApiApp.use('/api/v1/*', containerMiddleware(container));
+openApiApp.use('/api/v1/*', authMiddleware);
+openApiApp.route('/api/v1', v1Router);
+
+// Mount OpenAPI app (for /docs and /openapi.json)
+app.route('/', openApiApp);
 
 // Legacy profile route (keeping for backward compatibility)
 app.get('/api/v1/profile', (c) => {
@@ -43,11 +75,11 @@ app.get('/api/v1/profile', (c) => {
   return c.json({ user });
 });
 
-// Make webhook routes - apply container and Make auth middleware
-app.use('/webhooks/make/*', containerMiddleware(container));
-app.use('/webhooks/make/*', makeAuth);
+// Gmail Pub/Sub webhook routes - apply container and Gmail auth middleware
+app.use('/webhooks/gmail/*', containerMiddleware(container));
+app.use('/webhooks/gmail/*', gmailAuth);
 
-// Mount Make webhook router
-app.route('/webhooks/make', createMakeWebhookRouter());
+// Mount Gmail webhook router
+app.route('/webhooks/gmail', createGmailWebhookRouter());
 
 export default app;

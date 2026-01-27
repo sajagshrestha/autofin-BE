@@ -1,5 +1,5 @@
 import type { Context, Next } from 'hono';
-import type { Container } from '../lib/container';
+import type { Container } from '@/lib/container';
 
 type Env = {
   Variables: {
