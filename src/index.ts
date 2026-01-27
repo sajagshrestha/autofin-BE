@@ -25,13 +25,16 @@ const openApiApp = createOpenAPIApp();
 
 // CORS middleware - allow requests from localhost:3000
 const corsMiddleware = cors({
-  origin: ['http://localhost:5173', 'http://localhost:5173/'],
+  origin: ['http://localhost:5173', 'http://localhost:5173/, https://autofin-be.onrender.com'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 });
 
-app.use('*', corsMiddleware);
+app.use('*', async (c, next) => {
+  if (c.req.path === '/health') return next();
+  return corsMiddleware(c, next);
+});
 openApiApp.use('*', corsMiddleware);
 
 // Apply logger middleware globally to log all requests

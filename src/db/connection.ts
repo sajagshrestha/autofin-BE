@@ -1,4 +1,5 @@
 import { config } from 'dotenv';
+import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
@@ -41,7 +42,7 @@ export { client };
  */
 export async function checkDatabaseConnection(): Promise<boolean> {
   try {
-    await client`SELECT 1`;
+    await db.execute(sql`SELECT 1`);
     return true;
   } catch (error) {
     console.error('Database connection check failed:', error);

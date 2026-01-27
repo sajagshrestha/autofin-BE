@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { CategorySchema } from './category.schema';
 
 /**
  * Transaction schemas
@@ -8,6 +7,35 @@ import { CategorySchema } from './category.schema';
 
 export const TransactionTypeSchema = z.enum(['debit', 'credit']);
 export type TransactionType = z.infer<typeof TransactionTypeSchema>;
+
+/**
+ * Represents a transaction row as returned from the DB/repository
+ * (Date objects, type as string). Use toTransactionResponse() to convert to API shape.
+ */
+export type TransactionFromRepo = Omit<
+  TransactionWithCategory,
+  'type' | 'transactionDate' | 'createdAt' | 'updatedAt'
+> & {
+  type: string;
+  transactionDate: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+/**
+ * Converts a repo transaction (Date fields, type as string) to API response shape.
+ */
+export function toTransactionResponse<T extends TransactionFromRepo>(
+  txn: T
+): TransactionWithCategory {
+  return {
+    ...txn,
+    type: txn.type as TransactionType,
+    transactionDate: txn.transactionDate?.toISOString() ?? null,
+    createdAt: txn.createdAt.toISOString(),
+    updatedAt: txn.updatedAt.toISOString(),
+  };
+}
 
 export const TransactionSchema = z.object({
   id: z.string(),

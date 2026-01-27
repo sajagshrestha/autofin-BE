@@ -22,7 +22,6 @@ export function getAIProvider() {
       return createAnthropic();
     case 'google':
       return createGoogleGenerativeAI();
-    case 'openai':
     default:
       return createOpenAI();
   }
@@ -40,7 +39,6 @@ export function getDefaultModelId(): string {
       return 'claude-sonnet-4-20250514';
     case 'google':
       return 'gemini-2.0-flash';
-    case 'openai':
     default:
       return 'gpt-4o-mini';
   }

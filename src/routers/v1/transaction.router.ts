@@ -77,6 +77,7 @@ export const createTransactionRouter = () => {
 
     const transactionsWithStringDates = transactions.map((txn) => ({
       ...txn,
+      type: txn.type as 'debit' | 'credit',
       transactionDate: txn.transactionDate?.toISOString() || null,
       createdAt: txn.createdAt.toISOString(),
       updatedAt: txn.updatedAt.toISOString(),
@@ -202,6 +203,7 @@ export const createTransactionRouter = () => {
 
     const transactionWithStringDates = {
       ...transaction,
+      type: transaction.type as 'debit' | 'credit',
       transactionDate: transaction.transactionDate?.toISOString() || null,
       createdAt: transaction.createdAt.toISOString(),
       updatedAt: transaction.updatedAt.toISOString(),
@@ -278,12 +280,16 @@ export const createTransactionRouter = () => {
 
     // Fetch with category info
     const transactionWithCategory = await container.transactionRepo.findByIdWithCategory(id);
+    if (!transactionWithCategory) {
+      return c.json({ error: 'Transaction not found' }, 404 as const);
+    }
 
     const transactionWithStringDates = {
-      ...transactionWithCategory!,
-      transactionDate: transactionWithCategory!.transactionDate?.toISOString() || null,
-      createdAt: transactionWithCategory!.createdAt.toISOString(),
-      updatedAt: transactionWithCategory!.updatedAt.toISOString(),
+      ...transactionWithCategory,
+      type: transactionWithCategory.type as 'debit' | 'credit',
+      transactionDate: transactionWithCategory.transactionDate?.toISOString() ?? null,
+      createdAt: transactionWithCategory.createdAt.toISOString(),
+      updatedAt: transactionWithCategory.updatedAt.toISOString(),
     };
 
     return c.json({ transaction: transactionWithStringDates }, 200 as const);

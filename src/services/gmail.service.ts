@@ -403,8 +403,11 @@ export class GmailService extends BaseService {
             );
 
             // STEP 3: Save transaction if it's a bank email
-            if (this.transactionExtractor.isValidTransaction(extractionResult)) {
-              const txn = extractionResult.transaction!;
+            if (
+              this.transactionExtractor.isValidTransaction(extractionResult) &&
+              extractionResult.transaction
+            ) {
+              const txn = extractionResult.transaction;
 
               // Handle category: either use selected ID or create new category
               let categoryId = txn.categoryId;
