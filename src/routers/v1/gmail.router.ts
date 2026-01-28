@@ -1,4 +1,5 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { inngest } from '@/inngest/client';
 import type { Container } from '@/lib/container';
 import { createRoute } from '@/lib/openapi';
 import {
@@ -632,6 +633,25 @@ export const createGmailRouter = () => {
       await container.gmailOAuthRepo.updateHistoryId(user.id, response.historyId);
       console.log(`Stored initial history ID ${response.historyId} for user ${user.id}`);
 
+      // Start/refresh the periodic resync loop in Inngest (best-effort; don't fail the route).
+      try {
+        // If this endpoint is called multiple times, explicitly cancel any prior runs first.
+        await inngest.send({
+          name: 'gmail/watch.stopped',
+          data: { userId: user.id },
+        });
+        await inngest.send({
+          name: 'gmail/watch.started',
+          data: {
+            userId: user.id,
+            topicName,
+            labelIds,
+          },
+        });
+      } catch (err) {
+        console.warn('Failed to enqueue Inngest Gmail watch resync:', err);
+      }
+
       return c.json(response, 200 as const);
     } catch (error) {
       console.error('Error starting watch:', error);
@@ -816,6 +836,16 @@ export const createGmailRouter = () => {
       const container = c.get('container');
 
       await container.gmailService.stopWatch(user.id);
+
+      // Cancel any running resync loop for this user (best-effort).
+      try {
+        await inngest.send({
+          name: 'gmail/watch.stopped',
+          data: { userId: user.id },
+        });
+      } catch (err) {
+        console.warn('Failed to enqueue Inngest Gmail watch cancel event:', err);
+      }
 
       return c.json(
         {

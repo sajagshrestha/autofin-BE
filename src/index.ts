@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { checkDatabaseConnection, db } from '@/db/connection';
+import { serve } from 'inngest/hono';
+import { db } from '@/db/connection';
+import { functions, inngest } from '@/inngest';
 import { type Container, createContainer } from '@/lib/container';
 import { createOpenAPIApp } from '@/lib/openapi';
 import type { AuthUser } from '@/middleware/auth';
@@ -84,5 +86,8 @@ app.use('/webhooks/gmail/*', gmailAuth);
 
 // Mount Gmail webhook router
 app.route('/webhooks/gmail', createGmailWebhookRouter());
+
+// Inngest endpoint (required: GET/POST/PUT)
+app.on(['GET', 'PUT', 'POST'], '/api/inngest', serve({ client: inngest, functions }));
 
 export default app;
