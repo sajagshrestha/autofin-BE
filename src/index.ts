@@ -27,8 +27,12 @@ const openApiApp = createOpenAPIApp();
 
 // CORS middleware - allow requests from localhost:3000
 const corsMiddleware = cors({
-  origin: ['http://localhost:5173', 'http://localhost:5173/, https://autofin-be.onrender.com'],
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  origin: [
+    'http://localhost:5173',
+    'https://autofin-be.onrender.com',
+    'https://autofin-fe.vercel.app',
+  ],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 });

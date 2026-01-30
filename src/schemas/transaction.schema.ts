@@ -71,6 +71,24 @@ export const TransactionWithCategorySchema = TransactionSchema.extend({
 
 export type TransactionWithCategory = z.infer<typeof TransactionWithCategorySchema>;
 
+export const CreateTransactionSchema = z.object({
+  amount: z.coerce.number().positive(),
+  type: TransactionTypeSchema,
+  categoryId: z.string().optional(),
+  merchant: z.string().max(255).optional(),
+  remarks: z.string().max(500).optional(),
+  transactionDate: z.string().datetime().optional(),
+});
+
+export type CreateTransactionInput = z.infer<typeof CreateTransactionSchema>;
+
+export const CreateTransactionFromSmsSchema = z.object({
+  smsBody: z.string().min(10),
+  sender: z.string().optional(),
+});
+
+export type CreateTransactionFromSmsInput = z.infer<typeof CreateTransactionFromSmsSchema>;
+
 export const UpdateTransactionSchema = z.object({
   categoryId: z.string().optional(),
   merchant: z.string().max(255).optional(),

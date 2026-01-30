@@ -132,6 +132,11 @@ export interface EmailInput {
   from: string | undefined;
 }
 
+export interface SmsInput {
+  body: string;
+  sender: string | undefined;
+}
+
 /**
  * Build system prompt with available categories
  */
@@ -140,10 +145,10 @@ function buildSystemPrompt(categories: CategoryInfo[]): string {
     .map((c) => `- "${c.name}" (id: ${c.id})${c.icon ? ` ${c.icon}` : ''}`)
     .join('\n');
 
-  return `You are a financial email parser specialized in extracting transaction information from bank notification emails.
+  return `You are a financial message parser specialized in extracting transaction information from bank notification emails and SMS messages.
 
 Your task is to:
-1. Determine if the email is a bank transaction notification (debit/credit alert)
+1. Determine if the message (email or SMS) is a bank transaction notification (debit/credit alert)
 2. If it is, extract all relevant transaction details
 3. Categorize the transaction using the category field
 
@@ -162,7 +167,8 @@ CATEGORY SELECTION RULES:
 - If you cannot determine a category from the remarks, use action: "uncategorized" with the Uncategorized category ID from the list
 
 IMPORTANT GUIDELINES:
-- Only mark isTransaction=true for actual bank transaction alerts (not promotional emails, statements, or other notifications)
+- Only mark isTransaction=true for actual bank transaction alerts (not promotional messages, statements, or other notifications)
+- For SMS, look for specific patterns like "withdrawn by", "debited by", "credited with", "deposited", etc.
 - Extract the exact amount as a positive number (regardless of debit/credit)
 - Determine if it's a 'debit' (money spent/withdrawn) or 'credit' (money received/deposited)
 - For remarks: Extract the COMPLETE remarks/description text from the email
@@ -322,6 +328,123 @@ export class TransactionExtractorService {
         transaction: null,
       };
     }
+  }
+
+  /**
+   * Extract transaction data from an SMS using AI
+   *
+   * @param sms - The SMS content to analyze
+   * @param availableCategories - List of categories from the database
+   * @returns Extracted transaction data with selected or new category
+   */
+  async extractFromSms(
+    sms: SmsInput,
+    availableCategories: CategoryInfo[]
+  ): Promise<TransactionExtractionResult> {
+    const model = getAIModel();
+    const smsContent = this.formatSmsForPrompt(sms);
+    const systemPrompt = buildSystemPrompt(availableCategories);
+
+    // Create a map for quick category lookup
+    const categoryMap = new Map(availableCategories.map((c) => [c.id, c]));
+
+    // Find uncategorized as fallback
+    const uncategorized = availableCategories.find((c) => c.name.toLowerCase() === 'uncategorized');
+
+    // Get category IDs for the schema enum
+    const categoryIds = availableCategories.map((c) => c.id);
+
+    if (categoryIds.length === 0) {
+      console.warn('No categories available for extraction');
+      return {
+        isTransaction: false,
+        transaction: null,
+      };
+    }
+
+    try {
+      const schema = createExtractionSchema(categoryIds);
+
+      const result = await generateText({
+        model,
+        output: Output.object({ schema }),
+        system: systemPrompt,
+        prompt: smsContent,
+      });
+
+      const extracted = result.output;
+
+      if (!extracted.isTransaction || !extracted.transaction) {
+        return {
+          isTransaction: false,
+          transaction: null,
+        };
+      }
+
+      const txn = extracted.transaction;
+      const categoryAction = txn.category;
+
+      let categoryId: string | null = null;
+      let categoryName: string | null = null;
+      let newCategory: { name: string; icon: string } | null = null;
+
+      if (categoryAction.action === 'select_existing') {
+        const selectedCategory = categoryMap.get(categoryAction.categoryId);
+        categoryId = selectedCategory?.id || uncategorized?.id || null;
+        categoryName = selectedCategory?.name || uncategorized?.name || null;
+      } else if (categoryAction.action === 'uncategorized') {
+        const selectedCategory = categoryMap.get(categoryAction.categoryId);
+        categoryId = selectedCategory?.id || uncategorized?.id || null;
+        categoryName = selectedCategory?.name || uncategorized?.name || 'Uncategorized';
+      } else if (categoryAction.action === 'create_new') {
+        newCategory = {
+          name: categoryAction.newCategoryName,
+          icon: categoryAction.newCategoryIcon,
+        };
+        categoryName = categoryAction.newCategoryName;
+      }
+
+      return {
+        isTransaction: true,
+        transaction: {
+          amount: txn.amount,
+          type: txn.type,
+          merchant: txn.merchant,
+          accountLastFour: txn.accountLastFour,
+          bankName: txn.bankName,
+          date: txn.date,
+          time: txn.time,
+          remarks: txn.remarks,
+          confidence: txn.confidence,
+          categoryId,
+          categoryName,
+          newCategory,
+        },
+      };
+    } catch (error) {
+      console.error('AI SMS extraction failed:', error);
+      return {
+        isTransaction: false,
+        transaction: null,
+      };
+    }
+  }
+
+  /**
+   * Format SMS content for the AI prompt
+   */
+  private formatSmsForPrompt(sms: SmsInput): string {
+    const parts: string[] = [];
+
+    if (sms.sender) {
+      parts.push(`From/Sender: ${sms.sender}`);
+    }
+
+    parts.push('');
+    parts.push('SMS Message:');
+    parts.push(sms.body);
+
+    return parts.join('\n');
   }
 
   /**

@@ -4,6 +4,8 @@ import type { Container } from '@/lib/container';
 import { createRoute } from '@/lib/openapi';
 import type { AuthUser } from '@/middleware/auth';
 import {
+  CreateTransactionFromSmsSchema,
+  CreateTransactionSchema,
   ErrorSchema,
   TransactionFiltersSchema,
   TransactionResponseSchema,
@@ -24,6 +26,247 @@ type TransactionRouterEnv = {
  */
 export const createTransactionRouter = () => {
   const router = new OpenAPIHono<TransactionRouterEnv>();
+
+  // Create manual transaction
+  const createTransactionRoute = createRoute({
+    method: 'post',
+    path: '/',
+    summary: 'Create manual transaction',
+    description: 'Create a new transaction manually',
+    tags: ['Transactions'],
+    security: [{ Bearer: [] }],
+    request: {
+      body: {
+        content: {
+          'application/json': {
+            schema: CreateTransactionSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      201: {
+        description: 'Transaction created successfully',
+        content: {
+          'application/json': {
+            schema: TransactionResponseSchema,
+          },
+        },
+      },
+      401: {
+        description: 'Unauthorized',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+      500: {
+        description: 'Internal server error',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+    },
+  });
+
+  router.openapi(createTransactionRoute, async (c) => {
+    const container = c.get('container');
+    const user = c.get('user');
+    const body = c.req.valid('json');
+
+    const transactionDate = body.transactionDate ? new Date(body.transactionDate) : new Date();
+
+    const transaction = await container.transactionRepo.create({
+      id: crypto.randomUUID(),
+      userId: user.id,
+      amount: body.amount.toString(),
+      type: body.type,
+      categoryId: body.categoryId,
+      merchant: body.merchant,
+      remarks: body.remarks,
+      transactionDate,
+      currency: 'NPR',
+      isAiCreated: false,
+    });
+
+    // Fetch with category info
+    const transactionWithCategory = await container.transactionRepo.findByIdWithCategory(
+      transaction.id
+    );
+
+    if (!transactionWithCategory) {
+      return c.json({ error: 'Failed to retrieve created transaction' }, 500 as const);
+    }
+
+    const transactionWithStringDates = {
+      ...transactionWithCategory,
+      type: transactionWithCategory.type as 'debit' | 'credit',
+      transactionDate: transactionWithCategory.transactionDate?.toISOString() ?? null,
+      createdAt: transactionWithCategory.createdAt.toISOString(),
+      updatedAt: transactionWithCategory.updatedAt.toISOString(),
+    };
+
+    return c.json({ transaction: transactionWithStringDates }, 201 as const);
+  });
+
+  // Create transaction from SMS
+  const createTransactionFromSmsRoute = createRoute({
+    method: 'post',
+    path: '/sms',
+    summary: 'Create transaction from SMS',
+    description: 'Extract and create a transaction from an SMS message using AI',
+    tags: ['Transactions'],
+    security: [{ Bearer: [] }],
+    request: {
+      body: {
+        content: {
+          'application/json': {
+            schema: CreateTransactionFromSmsSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      201: {
+        description: 'Transaction created successfully from SMS',
+        content: {
+          'application/json': {
+            schema: TransactionResponseSchema,
+          },
+        },
+      },
+      400: {
+        description: 'Not a transaction or extraction failed',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+      401: {
+        description: 'Unauthorized',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+      500: {
+        description: 'Internal server error',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+    },
+  });
+
+  router.openapi(createTransactionFromSmsRoute, async (c) => {
+    const container = c.get('container');
+    const user = c.get('user');
+    const { smsBody, sender } = c.req.valid('json');
+
+    // Fetch available categories
+    const categories = await container.categoryRepo.findAllForUser(user.id);
+    const categoryInfoForAI = categories.map((cat) => ({
+      id: cat.id,
+      name: cat.name,
+      icon: cat.icon,
+    }));
+
+    // Extract transaction data
+    const extractionResult = await container.transactionExtractor.extractFromSms(
+      { body: smsBody, sender },
+      categoryInfoForAI
+    );
+
+    if (
+      !container.transactionExtractor.isValidTransaction(extractionResult) ||
+      !extractionResult.transaction
+    ) {
+      return c.json(
+        { error: 'Could not extract valid transaction from SMS', message: 'Not a transaction' },
+        400 as const
+      );
+    }
+
+    const txn = extractionResult.transaction;
+    let categoryId = txn.categoryId;
+
+    // Handle new category creation
+    if (txn.newCategory) {
+      try {
+        const newCat = await container.categoryRepo.create({
+          id: crypto.randomUUID(),
+          userId: user.id,
+          name: txn.newCategory.name,
+          icon: txn.newCategory.icon,
+          isDefault: false,
+          isAiCreated: true,
+        });
+        categoryId = newCat.id;
+      } catch (err) {
+        console.warn('Failed to create AI category:', err);
+        const existing = await container.categoryRepo.findByNameForUser(
+          txn.newCategory.name,
+          user.id
+        );
+        if (existing) categoryId = existing.id;
+      }
+    }
+
+    // Parse date
+    let transactionDate: Date | null = null;
+    if (txn.date) {
+      transactionDate = new Date(txn.date);
+      if (txn.time) {
+        const [h, m, s] = txn.time.split(':').map(Number);
+        transactionDate.setHours(h || 0, m || 0, s || 0);
+      }
+    }
+
+    // Save transaction
+    const transaction = await container.transactionRepo.create({
+      id: crypto.randomUUID(),
+      userId: user.id,
+      categoryId,
+      amount: txn.amount.toString(),
+      type: txn.type,
+      currency: 'NPR',
+      merchant: txn.merchant,
+      accountNumber: txn.accountLastFour,
+      bankName: txn.bankName,
+      transactionDate,
+      remarks: txn.remarks,
+      aiConfidence: txn.confidence.toString(),
+      aiExtractedData: extractionResult,
+      isAiCreated: true,
+    });
+
+    const transactionWithCategory = await container.transactionRepo.findByIdWithCategory(
+      transaction.id
+    );
+
+    if (!transactionWithCategory) {
+      return c.json({ error: 'Failed to retrieve created transaction' }, 500 as const);
+    }
+
+    const resultBody = {
+      transaction: {
+        ...transactionWithCategory,
+        type: transactionWithCategory.type as 'debit' | 'credit',
+        transactionDate: transactionWithCategory.transactionDate?.toISOString() ?? null,
+        createdAt: transactionWithCategory.createdAt.toISOString(),
+        updatedAt: transactionWithCategory.updatedAt.toISOString(),
+      },
+    };
+
+    return c.json(resultBody, 201 as const);
+  });
 
   // Get all transactions with filters
   const getTransactionsRoute = createRoute({
