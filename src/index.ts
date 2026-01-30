@@ -26,12 +26,15 @@ const app = new Hono<Env>();
 const openApiApp = createOpenAPIApp();
 
 // CORS middleware - allow requests from localhost:3000
+// CORS middleware configuration
+const allowedOrigins = ['https://autofin-be.onrender.com', 'https://autofin-fe.vercel.app'];
+
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push('http://localhost:5173');
+}
+
 const corsMiddleware = cors({
-  origin: [
-    'http://localhost:5173',
-    'https://autofin-be.onrender.com',
-    'https://autofin-fe.vercel.app',
-  ],
+  origin: allowedOrigins,
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
