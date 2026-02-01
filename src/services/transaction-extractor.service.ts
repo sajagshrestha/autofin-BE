@@ -59,21 +59,34 @@ function createExtractionSchema(_categoryIds: string[]) {
         categoryId: o.categoryId ?? o.id ?? '',
         reason: o.reason,
       })),
-    z.object({
-      action: z.literal('create_new'),
-      newCategoryName: z
-        .string()
-        .min(2)
-        .max(50)
-        .describe('Name for the new category (2-50 characters, be specific but concise)'),
-      newCategoryIcon: z.string().describe('A single emoji that represents this category'),
-      reason: z
-        .string()
-        .optional()
-        .describe(
-          'Brief explanation of why a new category is needed instead of using existing ones (optional)'
-        ),
-    }),
+    z
+      .object({
+        action: z.literal('create_new'),
+        newCategoryName: z
+          .string()
+          .min(2)
+          .max(50)
+          .optional()
+          .describe('Name for the new category (2-50 characters, be specific but concise)'),
+        name: z.string().optional(),
+        newCategoryIcon: z
+          .string()
+          .optional()
+          .describe('A single emoji that represents this category'),
+        icon: z.string().optional(),
+        reason: z
+          .string()
+          .optional()
+          .describe(
+            'Brief explanation of why a new category is needed instead of using existing ones (optional)'
+          ),
+      })
+      .transform((o) => ({
+        action: 'create_new' as const,
+        newCategoryName: (o.newCategoryName ?? o.name ?? '').slice(0, 50) || 'Other',
+        newCategoryIcon: o.newCategoryIcon ?? o.icon ?? '📁',
+        reason: o.reason,
+      })),
     z
       .object({
         action: z.literal('uncategorized'),
