@@ -699,18 +699,11 @@ export class GmailService extends BaseService {
    * This sets up a push notification subscription via Pub/Sub
    */
   async watch(userId: string, topicName: string, labelIds?: string[]): Promise<GmailWatchResponse> {
-    const body: {
-      topicName: string;
-      labelIds?: string[];
-      labelFilterAction?: 'include' | 'exclude';
-    } = {
+    const body = {
       topicName,
+      labelIds: labelIds || [],
+      labelFilterBehavior: 'include',
     };
-
-    if (labelIds && labelIds.length > 0) {
-      body.labelIds = labelIds;
-      body.labelFilterAction = 'include';
-    }
 
     return this.gmailRequest<GmailWatchResponse>(userId, '/users/me/watch', {
       method: 'POST',
