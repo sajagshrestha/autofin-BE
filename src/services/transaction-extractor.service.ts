@@ -12,21 +12,53 @@ export interface CategoryInfo {
 }
 
 /**
- * Schema for extracted transaction data with category selection or creation
+ * Resolve a category reference (ID or name) from the model to a valid category ID.
+ * The model sometimes returns category name instead of ID; we accept either and resolve here.
  */
-function createExtractionSchema(categoryIds: string[]) {
+function resolveCategoryId(
+  value: string,
+  categoryMap: Map<string, CategoryInfo>,
+  uncategorized: CategoryInfo | undefined
+): string | null {
+  if (!value || typeof value !== 'string') return uncategorized?.id ?? null;
+  const trimmed = value.trim();
+  if (categoryMap.has(trimmed)) return trimmed;
+  const byName = Array.from(categoryMap.values()).find(
+    (c) => c.name.toLowerCase() === trimmed.toLowerCase()
+  );
+  if (byName) return byName.id;
+  return uncategorized?.id ?? null;
+}
+
+/**
+ * Schema for extracted transaction data with category selection or creation.
+ * categoryId is accepted as string (not strict enum) so we can tolerate the model
+ * returning category name or malformed ID and resolve it in code.
+ */
+function createExtractionSchema(_categoryIds: string[]) {
   // Category selection: either pick existing or create new
+  // Accept both "categoryId" and "id" so model output matches (some models return "id")
   const categorySchema = z.discriminatedUnion('action', [
-    z.object({
-      action: z.literal('select_existing'),
-      categoryId: z
-        .enum(categoryIds as [string, ...string[]])
-        .describe('The ID of the selected category from the available categories'),
-      reason: z
-        .string()
-        .optional()
-        .describe('Brief explanation of why this category was chosen (optional)'),
-    }),
+    z
+      .object({
+        action: z.literal('select_existing'),
+        categoryId: z
+          .string()
+          .optional()
+          .describe(
+            'The exact category ID from the available categories list (use the id value, e.g. 3dd91f8e-a7a1-44bc-8051-accc3b29ca76)'
+          ),
+        id: z.string().optional(),
+        reason: z
+          .string()
+          .optional()
+          .describe('Brief explanation of why this category was chosen (optional)'),
+      })
+      .transform((o) => ({
+        action: 'select_existing' as const,
+        categoryId: o.categoryId ?? o.id ?? '',
+        reason: o.reason,
+      })),
     z.object({
       action: z.literal('create_new'),
       newCategoryName: z
@@ -42,12 +74,21 @@ function createExtractionSchema(categoryIds: string[]) {
           'Brief explanation of why a new category is needed instead of using existing ones (optional)'
         ),
     }),
-    z.object({
-      action: z.literal('uncategorized'),
-      categoryId: z
-        .enum(categoryIds as [string, ...string[]])
-        .describe('The ID of the Uncategorized category (use when category cannot be determined)'),
-    }),
+    z
+      .object({
+        action: z.literal('uncategorized'),
+        categoryId: z
+          .string()
+          .optional()
+          .describe(
+            'The ID of the Uncategorized category from the list (use when category cannot be determined)'
+          ),
+        id: z.string().optional(),
+      })
+      .transform((o) => ({
+        action: 'uncategorized' as const,
+        categoryId: o.categoryId ?? o.id ?? '',
+      })),
   ]);
 
   return z.object({
@@ -274,8 +315,9 @@ export class TransactionExtractorService {
       let newCategory: { name: string; icon: string } | null = null;
 
       if (categoryAction.action === 'select_existing') {
-        // Use existing category
-        const selectedCategory = categoryMap.get(categoryAction.categoryId);
+        // Use existing category (resolve ID/name from model to valid categoryId)
+        const resolvedId = resolveCategoryId(categoryAction.categoryId, categoryMap, uncategorized);
+        const selectedCategory = resolvedId ? categoryMap.get(resolvedId) : null;
         categoryId = selectedCategory?.id || uncategorized?.id || null;
         categoryName = selectedCategory?.name || uncategorized?.name || null;
 
@@ -283,8 +325,9 @@ export class TransactionExtractorService {
           `AI selected existing category: ${categoryName} (${categoryId})${categoryAction.reason ? ` - Reason: ${categoryAction.reason}` : ''}`
         );
       } else if (categoryAction.action === 'uncategorized') {
-        // AI explicitly chose uncategorized
-        const selectedCategory = categoryMap.get(categoryAction.categoryId);
+        // AI explicitly chose uncategorized (resolve ID/name to valid categoryId)
+        const resolvedId = resolveCategoryId(categoryAction.categoryId, categoryMap, uncategorized);
+        const selectedCategory = resolvedId ? categoryMap.get(resolvedId) : null;
         categoryId = selectedCategory?.id || uncategorized?.id || null;
         categoryName = selectedCategory?.name || uncategorized?.name || 'Uncategorized';
 
@@ -389,11 +432,13 @@ export class TransactionExtractorService {
       let newCategory: { name: string; icon: string } | null = null;
 
       if (categoryAction.action === 'select_existing') {
-        const selectedCategory = categoryMap.get(categoryAction.categoryId);
+        const resolvedId = resolveCategoryId(categoryAction.categoryId, categoryMap, uncategorized);
+        const selectedCategory = resolvedId ? categoryMap.get(resolvedId) : null;
         categoryId = selectedCategory?.id || uncategorized?.id || null;
         categoryName = selectedCategory?.name || uncategorized?.name || null;
       } else if (categoryAction.action === 'uncategorized') {
-        const selectedCategory = categoryMap.get(categoryAction.categoryId);
+        const resolvedId = resolveCategoryId(categoryAction.categoryId, categoryMap, uncategorized);
+        const selectedCategory = resolvedId ? categoryMap.get(resolvedId) : null;
         categoryId = selectedCategory?.id || uncategorized?.id || null;
         categoryName = selectedCategory?.name || uncategorized?.name || 'Uncategorized';
       } else if (categoryAction.action === 'create_new') {

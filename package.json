@@ -2,6 +2,8 @@
   "name": "autfin-BE",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
+    "test": "bun test",
+    "test:integration": "bun test src/services/transaction-extractor.service.integration.test.ts",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "format": "biome format --write .",
