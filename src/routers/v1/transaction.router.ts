@@ -109,6 +109,16 @@ export const createTransactionRouter = () => {
       updatedAt: transactionWithCategory.updatedAt.toISOString(),
     };
 
+    void container.discordService.notifyNewTransaction({
+      id: transactionWithCategory.id,
+      amount: transactionWithCategory.amount,
+      type: transactionWithCategory.type as 'debit' | 'credit',
+      merchant: transactionWithCategory.merchant,
+      source: 'api',
+      category: transactionWithCategory.category?.name ?? null,
+      transactionDate: transactionWithCategory.transactionDate?.toISOString() ?? null,
+    });
+
     return c.json({ transaction: transactionWithStringDates }, 201 as const);
   });
 
@@ -264,6 +274,16 @@ export const createTransactionRouter = () => {
         updatedAt: transactionWithCategory.updatedAt.toISOString(),
       },
     };
+
+    void container.discordService.notifyNewTransaction({
+      id: transactionWithCategory.id,
+      amount: transactionWithCategory.amount,
+      type: transactionWithCategory.type as 'debit' | 'credit',
+      merchant: transactionWithCategory.merchant,
+      source: 'api_sms',
+      category: transactionWithCategory.category?.name ?? null,
+      transactionDate: transactionWithCategory.transactionDate?.toISOString() ?? null,
+    });
 
     return c.json(resultBody, 201 as const);
   });

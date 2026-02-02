@@ -1,6 +1,8 @@
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { getAIModel } from '@/lib/ai';
+import type { DiscordService } from '@/services/discord.service';
+import type { LoggerService } from '@/services/logger.service';
 
 /**
  * Category info from the database
@@ -267,6 +269,11 @@ EXAMPLES OF WHEN TO CREATE NEW CATEGORIES:
  * and select or create categories.
  */
 export class TransactionExtractorService {
+  constructor(
+    private readonly loggerService: LoggerService,
+    private readonly discordService: DiscordService
+  ) {}
+
   /**
    * Extract transaction data from an email using AI
    * The AI can select from existing categories or suggest creating a new one
@@ -376,7 +383,8 @@ export class TransactionExtractorService {
         },
       };
     } catch (error) {
-      console.error('AI extraction failed:', error);
+      this.loggerService.error('AI extraction failed', error);
+      void this.discordService.notifyExtractorFailed('email', error);
 
       // Return a safe default on error
       return {
@@ -480,7 +488,8 @@ export class TransactionExtractorService {
         },
       };
     } catch (error) {
-      console.error('AI SMS extraction failed:', error);
+      this.loggerService.error('AI SMS extraction failed', error);
+      void this.discordService.notifyExtractorFailed('sms', error);
       return {
         isTransaction: false,
         transaction: null,

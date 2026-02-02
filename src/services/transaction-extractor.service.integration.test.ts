@@ -7,6 +7,8 @@
  */
 
 import { beforeAll, describe, expect, test } from 'bun:test';
+import { DiscordServiceImpl } from './discord.service';
+import { LoggerServiceImpl } from './logger.service';
 import { type CategoryInfo, TransactionExtractorService } from './transaction-extractor.service';
 
 // Same categories as seed-categories.ts PREDEFINED_CATEGORIES (stable IDs for tests)
@@ -88,7 +90,9 @@ describe('TransactionExtractorService (integration – real AI)', () => {
   let service: TransactionExtractorService;
 
   beforeAll(() => {
-    service = new TransactionExtractorService();
+    const logger = new LoggerServiceImpl();
+    const discord = new DiscordServiceImpl(''); // no-op in tests
+    service = new TransactionExtractorService(logger, discord);
   });
 
   test('extracts transaction from Nabil Bank email using real AI', async () => {

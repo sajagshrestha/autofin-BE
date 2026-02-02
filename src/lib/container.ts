@@ -7,8 +7,12 @@ import type { TransactionRepository } from '@/repositories/transaction.repositor
 import { TransactionRepository as TransactionRepositoryImpl } from '@/repositories/transaction.repository';
 import type { UserRepository } from '@/repositories/user.repository';
 import { UserRepository as UserRepositoryImpl } from '@/repositories/user.repository';
+import type { DiscordService } from '@/services/discord.service';
+import { DiscordServiceImpl } from '@/services/discord.service';
 import type { GmailService } from '@/services/gmail.service';
 import { GmailService as GmailServiceImpl } from '@/services/gmail.service';
+import type { LoggerService } from '@/services/logger.service';
+import { LoggerServiceImpl } from '@/services/logger.service';
 import type { TransactionExtractorService } from '@/services/transaction-extractor.service';
 import { TransactionExtractorService as TransactionExtractorServiceImpl } from '@/services/transaction-extractor.service';
 import type { UserService } from '@/services/user.service';
@@ -26,6 +30,8 @@ export interface Container {
   readonly categoryRepo: CategoryRepository;
   readonly transactionRepo: TransactionRepository;
   // Services
+  readonly loggerService: LoggerService;
+  readonly discordService: DiscordService;
   readonly userService: UserService;
   readonly gmailService: GmailService;
   readonly transactionExtractor: TransactionExtractorService;
@@ -49,15 +55,20 @@ export function createContainer(db: Database): Container {
   const transactionRepo: TransactionRepository = new TransactionRepositoryImpl(db);
 
   // Services (depend on db and repositories)
-  // Services now have direct access to db for transactions and complex queries
+  const loggerService: LoggerService = new LoggerServiceImpl();
+  const discordService: DiscordService = new DiscordServiceImpl();
   const userService: UserService = new UserServiceImpl(db, userRepo);
-  const transactionExtractor: TransactionExtractorService = new TransactionExtractorServiceImpl();
+  const transactionExtractor: TransactionExtractorService = new TransactionExtractorServiceImpl(
+    loggerService,
+    discordService
+  );
   const gmailService: GmailService = new GmailServiceImpl(
     db,
     gmailOAuthRepo,
     transactionRepo,
     categoryRepo,
-    transactionExtractor
+    transactionExtractor,
+    discordService
   );
 
   return {
@@ -68,6 +79,8 @@ export function createContainer(db: Database): Container {
     categoryRepo,
     transactionRepo,
     // Services
+    loggerService,
+    discordService,
     userService,
     gmailService,
     transactionExtractor,

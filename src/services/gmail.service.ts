@@ -3,6 +3,7 @@ import type { CategoryRepository } from '@/repositories/category.repository';
 import type { GmailOAuthRepository } from '@/repositories/gmail-oauth.repository';
 import type { TransactionRepository } from '@/repositories/transaction.repository';
 import { BaseService } from './base.service';
+import type { DiscordService } from './discord.service';
 import type { TransactionExtractorService } from './transaction-extractor.service';
 
 /**
@@ -118,7 +119,8 @@ export class GmailService extends BaseService {
     private readonly gmailOAuthRepo: GmailOAuthRepository,
     private readonly transactionRepo: TransactionRepository,
     private readonly categoryRepo: CategoryRepository,
-    private readonly transactionExtractor: TransactionExtractorService
+    private readonly transactionExtractor: TransactionExtractorService,
+    private readonly discordService: DiscordService
   ) {
     super(db);
   }
@@ -460,7 +462,7 @@ export class GmailService extends BaseService {
               }
 
               try {
-                await this.transactionRepo.create({
+                const created = await this.transactionRepo.create({
                   id: crypto.randomUUID(),
                   userId,
                   categoryId,
@@ -482,6 +484,16 @@ export class GmailService extends BaseService {
                 const categoryLabel = txn.newCategory
                   ? `${txn.newCategory.icon} ${txn.newCategory.name} (new)`
                   : txn.categoryName || 'Uncategorized';
+                void this.discordService.notifyNewTransaction({
+                  id: created.id,
+                  amount: txn.amount.toString(),
+                  type: txn.type,
+                  merchant: txn.merchant,
+                  source: 'gmail',
+                  category: categoryLabel,
+                  transactionDate: transactionDate?.toISOString() ?? null,
+                });
+
                 console.log(
                   `Transaction saved: ${txn.type} ${txn.amount} from ${txn.merchant || 'Unknown'} [${categoryLabel}]`
                 );

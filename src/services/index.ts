@@ -1,4 +1,6 @@
 export { BaseService } from './base.service';
+export type { DiscordService, NewTransactionPayload } from './discord.service';
+export { DiscordServiceImpl } from './discord.service';
 export type {
   GmailHistory,
   GmailMessage,
@@ -8,6 +10,8 @@ export type {
   GmailWatchResponse,
 } from './gmail.service';
 export { GmailService } from './gmail.service';
+export type { LoggerService } from './logger.service';
+export { LoggerServiceImpl } from './logger.service';
 export type {
   CategoryAction,
   CategoryInfo,
