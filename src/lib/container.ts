@@ -67,6 +67,7 @@ export function createContainer(db: Database): Container {
     gmailOAuthRepo,
     transactionRepo,
     categoryRepo,
+    userRepo,
     transactionExtractor,
     discordService
   );

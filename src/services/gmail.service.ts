@@ -1,7 +1,9 @@
 import type { Database } from '@/db/connection';
+import { localToUtc } from '@/lib/timezone';
 import type { CategoryRepository } from '@/repositories/category.repository';
 import type { GmailOAuthRepository } from '@/repositories/gmail-oauth.repository';
 import type { TransactionRepository } from '@/repositories/transaction.repository';
+import type { UserRepository } from '@/repositories/user.repository';
 import { BaseService } from './base.service';
 import type { DiscordService } from './discord.service';
 import type { TransactionExtractorService } from './transaction-extractor.service';
@@ -119,6 +121,7 @@ export class GmailService extends BaseService {
     private readonly gmailOAuthRepo: GmailOAuthRepository,
     private readonly transactionRepo: TransactionRepository,
     private readonly categoryRepo: CategoryRepository,
+    private readonly userRepo: UserRepository,
     private readonly transactionExtractor: TransactionExtractorService,
     private readonly discordService: DiscordService
   ) {
@@ -345,6 +348,10 @@ export class GmailService extends BaseService {
     // Track processed message IDs to avoid duplicates
     const processedMessageIds = new Set<string>();
 
+    // Fetch user timezone for date conversion
+    const user = await this.userRepo.findById(userId);
+    const userTimezone = user?.timezone ?? 'Asia/Kathmandu';
+
     // Fetch available categories once for all messages in this batch
     const availableCategories = await this.categoryRepo.findAllForUser(userId);
     const categoryInfoForAI = availableCategories.map((c) => ({
@@ -446,16 +453,11 @@ export class GmailService extends BaseService {
                 }
               }
 
-              // Parse transaction date
+              // Parse transaction date and convert from user's timezone to UTC
               let transactionDate: Date | null = null;
               if (txn.date) {
                 try {
-                  transactionDate = new Date(txn.date);
-                  // If time is also available, combine them
-                  if (txn.time) {
-                    const [hours, minutes, seconds] = txn.time.split(':').map(Number);
-                    transactionDate.setHours(hours || 0, minutes || 0, seconds || 0);
-                  }
+                  transactionDate = localToUtc(txn.date, txn.time ?? null, userTimezone);
                 } catch {
                   console.warn(`Failed to parse transaction date: ${txn.date}`);
                 }

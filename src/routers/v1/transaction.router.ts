@@ -2,6 +2,7 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from 'zod';
 import type { Container } from '@/lib/container';
 import { createRoute } from '@/lib/openapi';
+import { filterDateToUtc, localToUtc } from '@/lib/timezone';
 import type { AuthUser } from '@/middleware/auth';
 import {
   CreateTransactionFromSmsSchema,
@@ -77,7 +78,13 @@ export const createTransactionRouter = () => {
     const user = c.get('user');
     const body = c.req.valid('json');
 
-    const transactionDate = body.transactionDate ? new Date(body.transactionDate) : new Date();
+    // Fetch user timezone for date conversion
+    const userRecord = await container.userRepo.findById(user.id);
+    const userTimezone = userRecord?.timezone ?? 'Asia/Kathmandu';
+
+    const transactionDate = body.transactionDate
+      ? filterDateToUtc(body.transactionDate, userTimezone)
+      : new Date();
 
     const transaction = await container.transactionRepo.create({
       id: crypto.randomUUID(),
@@ -229,13 +236,17 @@ export const createTransactionRouter = () => {
       }
     }
 
-    // Parse date
+    // Fetch user timezone for date conversion
+    const userRecord = await container.userRepo.findById(user.id);
+    const userTimezone = userRecord?.timezone ?? 'Asia/Kathmandu';
+
+    // Parse date and convert from user's timezone to UTC
     let transactionDate: Date | null = null;
     if (txn.date) {
-      transactionDate = new Date(txn.date);
-      if (txn.time) {
-        const [h, m, s] = txn.time.split(':').map(Number);
-        transactionDate.setHours(h || 0, m || 0, s || 0);
+      try {
+        transactionDate = localToUtc(txn.date, txn.time ?? null, userTimezone);
+      } catch {
+        console.warn(`Failed to parse SMS transaction date: ${txn.date}`);
       }
     }
 
@@ -324,13 +335,17 @@ export const createTransactionRouter = () => {
     const user = c.get('user');
     const query = c.req.valid('query');
 
-    const { limit, offset, ...filters } = query;
+    const { limit, offset, timezone, ...filters } = query;
 
-    // Convert date strings to Date objects for repository
+    // Fetch user timezone (query param overrides user default)
+    const userRecord = await container.userRepo.findById(user.id);
+    const tz = timezone ?? userRecord?.timezone ?? 'Asia/Kathmandu';
+
+    // Convert date strings to UTC Date objects using the user's timezone
     const repoFilters = {
       ...filters,
-      startDate: filters.startDate ? new Date(filters.startDate) : undefined,
-      endDate: filters.endDate ? new Date(filters.endDate) : undefined,
+      startDate: filters.startDate ? filterDateToUtc(filters.startDate, tz) : undefined,
+      endDate: filters.endDate ? filterDateToUtc(filters.endDate, tz) : undefined,
     };
 
     const [transactions, total] = await Promise.all([
@@ -369,6 +384,10 @@ export const createTransactionRouter = () => {
       query: z.object({
         startDate: z.string().datetime().optional(),
         endDate: z.string().datetime().optional(),
+        timezone: z.string().optional().openapi({
+          description:
+            'IANA timezone identifier (e.g., "Asia/Kathmandu"). Overrides user default timezone for date filter conversion.',
+        }),
       }),
     },
     responses: {
@@ -396,8 +415,12 @@ export const createTransactionRouter = () => {
     const user = c.get('user');
     const query = c.req.valid('query');
 
-    const startDate = query.startDate ? new Date(query.startDate) : undefined;
-    const endDate = query.endDate ? new Date(query.endDate) : undefined;
+    // Fetch user timezone (query param overrides user default)
+    const userRecord = await container.userRepo.findById(user.id);
+    const tz = query.timezone ?? userRecord?.timezone ?? 'Asia/Kathmandu';
+
+    const startDate = query.startDate ? filterDateToUtc(query.startDate, tz) : undefined;
+    const endDate = query.endDate ? filterDateToUtc(query.endDate, tz) : undefined;
 
     const summary = await container.transactionRepo.getSummaryForUser(user.id, startDate, endDate);
 
@@ -529,10 +552,16 @@ export const createTransactionRouter = () => {
     const { id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    // Convert transactionDate string to Date if provided
+    // Fetch user timezone for date conversion
+    const userRecord = await container.userRepo.findById(user.id);
+    const userTimezone = userRecord?.timezone ?? 'Asia/Kathmandu';
+
+    // Convert transactionDate string to UTC Date if provided
     const updateData = {
       ...body,
-      transactionDate: body.transactionDate ? new Date(body.transactionDate) : undefined,
+      transactionDate: body.transactionDate
+        ? filterDateToUtc(body.transactionDate, userTimezone)
+        : undefined,
     };
 
     const transaction = await container.transactionRepo.update(id, user.id, updateData);

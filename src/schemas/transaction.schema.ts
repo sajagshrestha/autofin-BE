@@ -104,6 +104,7 @@ export const TransactionFiltersSchema = z.object({
   type: TransactionTypeSchema.optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
+  timezone: z.string().optional(), // IANA timezone identifier (e.g., "Asia/Kathmandu") - overrides user default for date filter conversion
   minAmount: z.coerce.number().optional(),
   maxAmount: z.coerce.number().optional(),
   limit: z.coerce.number().min(1).max(100).default(50),

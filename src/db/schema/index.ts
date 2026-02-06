@@ -33,8 +33,9 @@ export const users = pgTable('users', {
   // This should match auth.users.id from Supabase Auth
   id: text('id').primaryKey(),
   email: text('email').notNull().unique(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  timezone: text('timezone').notNull().default('Asia/Kathmandu'), // IANA timezone identifier
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export type User = typeof users.$inferSelect;
@@ -54,11 +55,11 @@ export const gmailOAuthTokens = pgTable('gmail_oauth_tokens', {
   emailAddress: text('email_address').notNull(), // Gmail email address
   accessToken: text('access_token').notNull(), // Encrypted access token
   refreshToken: text('refresh_token').notNull(), // Encrypted refresh token
-  expiresAt: timestamp('expires_at').notNull(), // Token expiration time
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(), // Token expiration time
   scope: text('scope').notNull(), // OAuth scopes granted
   historyId: text('history_id'), // Last processed Gmail history ID for watch notifications
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export type GmailOAuthToken = typeof gmailOAuthTokens.$inferSelect;
@@ -78,7 +79,7 @@ export const categories = pgTable('categories', {
   icon: text('icon'), // emoji or icon name
   isDefault: boolean('is_default').default(false).notNull(), // predefined vs custom
   isAiCreated: boolean('is_ai_created').default(false).notNull(), // true if created by AI, false if created by user
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export type Category = typeof categories.$inferSelect;
@@ -107,7 +108,7 @@ export const transactions = pgTable('transactions', {
   merchant: text('merchant'),
   accountNumber: text('account_number'), // last 4 digits
   bankName: text('bank_name'),
-  transactionDate: timestamp('transaction_date'),
+  transactionDate: timestamp('transaction_date', { withTimezone: true }),
   remarks: text('remarks'),
 
   // Source tracking - emailId is UNIQUE to prevent duplicate processing
@@ -119,8 +120,8 @@ export const transactions = pgTable('transactions', {
   aiExtractedData: jsonb('ai_extracted_data'), // full AI response for debugging
   isAiCreated: boolean('is_ai_created').default(false).notNull(), // true if created by AI from email, false if created manually by user
 
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export type Transaction = typeof transactions.$inferSelect;
