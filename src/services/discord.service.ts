@@ -35,6 +35,7 @@ export class DiscordServiceImpl implements DiscordService {
   }
 
   async notifyNewTransaction(payload: NewTransactionPayload): Promise<void> {
+    console.info(`hello from discord service: ${JSON.stringify(payload)}`);
     if (!this.webhookUrl) return;
 
     const typeEmoji = payload.type === 'credit' ? '💰' : '💸';

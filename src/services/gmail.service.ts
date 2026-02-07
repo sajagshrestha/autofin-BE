@@ -486,6 +486,7 @@ export class GmailService extends BaseService {
                 const categoryLabel = txn.newCategory
                   ? `${txn.newCategory.icon} ${txn.newCategory.name} (new)`
                   : txn.categoryName || 'Uncategorized';
+
                 await this.discordService.notifyNewTransaction({
                   id: created.id,
                   amount: txn.amount.toString(),
