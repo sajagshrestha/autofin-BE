@@ -1,5 +1,8 @@
+import '../instrument.mjs';
+import * as Sentry from '@sentry/node';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { HTTPException } from 'hono/http-exception';
 import { serve } from 'inngest/hono';
 import { db } from '@/db/connection';
 import { functions, inngest } from '@/inngest';
@@ -21,6 +24,17 @@ type Env = {
 };
 
 const app = new Hono<Env>();
+
+app.onError((err, c) => {
+  // Report _all_ unhandled errors.
+  Sentry.captureException(err);
+  if (err instanceof HTTPException) {
+    return err.getResponse();
+  }
+  // Or just report errors which are not instances of HTTPException
+  // Sentry.captureException(err);
+  return c.json({ error: 'Internal server error' }, 500);
+});
 
 // Create OpenAPI app for docs and mount it
 const openApiApp = createOpenAPIApp();
@@ -60,6 +74,10 @@ app.get('/', (c) => {
 // Health check with database connection test
 app.get('/health', async (c) => {
   return c.json({ status: 'ok' });
+});
+
+app.get('/debug-sentry', () => {
+  throw new Error('My first Sentry error!');
 });
 
 // API v1 routes - apply container and auth middleware

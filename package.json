@@ -25,6 +25,7 @@
     "@hono/swagger-ui": "^0.5.3",
     "@hono/zod-openapi": "^1.2.0",
     "@hono/zod-validator": "^0.7.6",
+    "@sentry/node": "^10.38.0",
     "@supabase/supabase-js": "^2.91.0",
     "ai": "^6.0.50",
     "date-fns-tz": "^3.2.0",

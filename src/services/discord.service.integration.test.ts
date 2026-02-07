@@ -61,7 +61,7 @@ describe('DiscordService integration', () => {
       merchant: 'Test Store',
       source: 'api',
       category: 'Food',
-      transactionDate: new Date('2026-02-01T12:00:00Z'),
+      transactionDate: new Date('2026-02-01T12:00:00Z').toISOString(),
     });
 
     expect(fake.requests).toHaveLength(1);
