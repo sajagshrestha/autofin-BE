@@ -38,7 +38,7 @@ export function getDefaultModelId(): string {
     case 'anthropic':
       return 'claude-sonnet-4-20250514';
     case 'google':
-      return 'gemini-2.0-flash';
+      return 'gemini-2.5-flash';
     default:
       return 'gpt-4o-mini';
   }
