@@ -76,9 +76,9 @@ app.get('/health', async (c) => {
   return c.json({ status: 'ok' });
 });
 
-app.get('/debug-sentry', () => {
-  throw new Error('My first Sentry error!');
-});
+// app.get('/debug-sentry', () => {
+//   throw new Error('My first Sentry error!');
+// });
 
 // API v1 routes - apply container and auth middleware
 app.use('/api/v1/*', containerMiddleware(container));
