@@ -1,4 +1,5 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { AUTOFIN_LABEL_IDS } from '@/constants';
 import { inngest } from '@/inngest/client';
 import type { Container } from '@/lib/container';
 import { createRoute } from '@/lib/openapi';
@@ -624,7 +625,7 @@ export const createGmailRouter = () => {
       const container = c.get('container');
 
       const topicName = 'projects/project-4d4e1b26-7614-4156-a58/topics/autofin';
-      const labelIds: string[] = ['Label_244575247866812359'];
+      const labelIds: string[] = AUTOFIN_LABEL_IDS;
 
       const response = await container.gmailService.watch(user.id, topicName, labelIds);
 
@@ -733,7 +734,7 @@ export const createGmailRouter = () => {
       const container = c.get('container');
 
       const topicName = 'projects/project-4d4e1b26-7614-4156-a58/topics/autofin';
-      const labelIds: string[] = ['Label_244575247866812359'];
+      const labelIds: string[] = AUTOFIN_LABEL_IDS;
 
       // Calling watch() is idempotent - it returns current watch info if one exists
       const response = await container.gmailService.watch(user.id, topicName, labelIds);

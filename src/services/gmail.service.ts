@@ -1,3 +1,4 @@
+import { AUTOFIN_LABEL_IDS } from '@/constants';
 import type { Database } from '@/db/connection';
 import { localToUtc } from '@/lib/timezone';
 import type { CategoryRepository } from '@/repositories/category.repository';
@@ -366,6 +367,12 @@ export class GmailService extends BaseService {
         // New messages received
         for (const messageAdded of historyEntry.messagesAdded) {
           const messageId = messageAdded.message.id;
+          const labelIds = messageAdded.message.labelIds;
+
+          // Skip if not an autofin message
+          if (!labelIds.some((labelId) => AUTOFIN_LABEL_IDS.includes(labelId))) {
+            continue;
+          }
 
           // Skip if already processed in this batch
           if (processedMessageIds.has(messageId)) {

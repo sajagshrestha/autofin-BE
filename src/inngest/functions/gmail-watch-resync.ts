@@ -42,7 +42,7 @@ export const gmailWatchResync = inngest.createFunction(
     const { userId, topicName, labelIds } = (event as GmailWatchStartedEvent).data;
 
     // Default to 12h; can be overridden with env var compatible with `ms` (e.g. "6h", "1d")
-    const interval = process.env.GMAIL_WATCH_RESYNC_INTERVAL || '24h';
+    const interval = process.env.GMAIL_WATCH_RESYNC_INTERVAL || '1d';
 
     // Create container on-demand inside the function runtime.
     const container = createContainer(db);
