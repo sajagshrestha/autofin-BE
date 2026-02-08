@@ -72,7 +72,7 @@ If not you, call 1800-xxx-xxxx.`,
 const GYM_TRANSACTION_EMAIL = {
   subject: 'Payment received - Cult.fit',
   from: 'payments@cult.fit',
-  body: `Your payment of INR 999.00 was successful on 01-Feb-2026.
+  body: `Your payment of INR 999.00 was debited successfully on 01-Feb-2026.
 Remarks: CULT FIT MONTHLY MEMBERSHIP GYM BANGALORE
 Transaction ID: CULT-2026-xxx. Thank you for choosing Cult.fit.`,
 };
