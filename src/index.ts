@@ -46,6 +46,7 @@ const allowedOrigins = [
   'https://autofin-fe.vercel.app',
   'https://autofin-1031445632496.europe-west1.run.app',
   'https://www.autofin.site',
+  'https://autofin.site',
 ];
 
 if (process.env.NODE_ENV !== 'production') {
