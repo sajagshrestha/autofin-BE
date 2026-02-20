@@ -33,5 +33,5 @@ COPY --from=prerelease /usr/src/app/src ./src
 
 # run the app (Bun runs TypeScript from src/index.ts directly)
 USER bun
-EXPOSE 3000/tcp
+EXPOSE 8080/tcp
 ENTRYPOINT [ "bun", "run", "src/index.ts" ]
