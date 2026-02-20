@@ -24,7 +24,11 @@ async function generateOpenAPI() {
   // For now, we'll create a basic structure
 
   // Get the OpenAPI document
-  const spec = openApiApp.getOpenAPIDocument();
+  const spec = openApiApp.getOpenAPIDocument({
+    openapi: '3.0.0',
+    info: { version: '1.0.0', title: 'Autofin API', description: 'API for Autofin backend' },
+    servers: [{ url: process.env.API_BASE_URL || 'http://localhost:3000' }],
+  });
 
   // Write to file
   const outputPath = join(process.cwd(), 'openapi.json');

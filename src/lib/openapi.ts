@@ -35,7 +35,7 @@ export const createOpenAPIApp = () => {
         },
       },
     },
-  });
+  } as Parameters<typeof app.doc>[1]);
 
   // Swagger UI endpoint
   app.get(
@@ -50,7 +50,7 @@ export const createOpenAPIApp = () => {
         showExtensions: true,
         showCommonExtensions: true,
       },
-    })
+    } as Parameters<typeof swaggerUI>[0])
   );
 
   return app;
@@ -61,7 +61,11 @@ export const createOpenAPIApp = () => {
  * Can be exported and shared with frontend/mobile apps
  */
 export const getOpenAPISpec = (app: OpenAPIHono) => {
-  return app.getOpenAPIDocument();
+  return app.getOpenAPIDocument({
+    openapi: '3.0.0',
+    info: { version: '1.0.0', title: 'Autofin API', description: 'API for Autofin backend' },
+    servers: [{ url: process.env.API_BASE_URL || 'http://localhost:3000' }],
+  });
 };
 
 // Export createRoute for use in routers

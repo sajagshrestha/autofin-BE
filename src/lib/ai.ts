@@ -53,3 +53,15 @@ export function getAIModel() {
 
   return provider(modelId);
 }
+
+/** Model ID for Gemini 2.5 Flash (full model, not lite) - used for insights generation */
+const GEMINI_2_5_FLASH_MODEL_ID = 'gemini-2.5-flash';
+
+/**
+ * Get the Gemini 2.5 Flash model for insights generation.
+ * Uses the full Flash model for better reasoning on financial advice.
+ */
+export function getInsightsModel() {
+  const provider = getAIProvider();
+  return provider(GEMINI_2_5_FLASH_MODEL_ID);
+}

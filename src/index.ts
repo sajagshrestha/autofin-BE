@@ -115,4 +115,7 @@ app.route('/webhooks/gmail', createGmailWebhookRouter());
 // Inngest endpoint (required: GET/POST/PUT)
 app.on(['GET', 'PUT', 'POST'], '/api/inngest', serve({ client: inngest, functions }));
 
-export default app;
+export default {
+  fetch: app.fetch,
+  idleTimeout: 60,
+};

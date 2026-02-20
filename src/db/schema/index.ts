@@ -127,11 +127,40 @@ export const transactions = pgTable('transactions', {
 export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
 
+/**
+ * Financial insights table
+ *
+ * Stores AI-generated financial advice based on user transactions.
+ * Can be manually generated or auto-generated monthly.
+ */
+export const financialInsights = pgTable('financial_insights', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  periodStart: timestamp('period_start', { withTimezone: true }).notNull(),
+  periodEnd: timestamp('period_end', { withTimezone: true }).notNull(),
+  content: text('content').notNull(), // AI-generated advice (markdown)
+  summary: jsonb('summary'), // Optional structured summary (spending by category, top advice)
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type FinancialInsight = typeof financialInsights.$inferSelect;
+export type NewFinancialInsight = typeof financialInsights.$inferInsert;
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   gmailTokens: many(gmailOAuthTokens),
   categories: many(categories),
   transactions: many(transactions),
+  financialInsights: many(financialInsights),
+}));
+
+export const financialInsightsRelations = relations(financialInsights, ({ one }) => ({
+  user: one(users, {
+    fields: [financialInsights.userId],
+    references: [users.id],
+  }),
 }));
 
 export const gmailOAuthTokensRelations = relations(gmailOAuthTokens, ({ one }) => ({

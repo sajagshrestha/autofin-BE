@@ -6,6 +6,7 @@ import type { AuthUser } from '@/middleware/auth';
 import { createCategoryRouter } from './category.router';
 import { createGmailRouter } from './gmail.router';
 import { createGmailOAuthRouter } from './gmail-oauth.router';
+import { createInsightsRouter } from './insights.router';
 import { createTransactionRouter } from './transaction.router';
 import { createUserRouter } from './user.router';
 
@@ -25,6 +26,7 @@ export const createV1Router = () => {
   router.route('/gmail', createGmailRouter());
   router.route('/categories', createCategoryRouter());
   router.route('/transactions', createTransactionRouter());
+  router.route('/insights', createInsightsRouter());
 
   // Health check
   const healthCheckRoute = createRoute({

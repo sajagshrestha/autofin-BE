@@ -8,21 +8,23 @@ import type { UserRepository } from '@/repositories/user.repository';
 import { UserService } from '@/services/user.service';
 import type { Container } from './container';
 
-// Example test setup
+// Example test setup - pass overrides for the Container parts you need in tests
 export function createTestContainer(overrides?: Partial<Container>): Container {
-  const mockDb = {
-    // Mock database methods
-  } as Container['db'];
+  const mockDb = {} as Container['db'];
 
-  const mockUserRepo: UserRepository = {
+  const mockUserRepo = {
+    db: mockDb,
     findAll: async () => [],
     findById: async () => null,
     findByEmail: async () => null,
-    create: async (data) => ({ id: '1', ...data, createdAt: new Date(), updatedAt: new Date() }),
+    create: async (data: { id: string; email: string; timezone?: string }) =>
+      ({ ...data, id: '1', createdAt: new Date(), updatedAt: new Date() }) as Awaited<
+        ReturnType<UserRepository['create']>
+      >,
     update: async () => null,
     delete: async () => false,
-    ...overrides?.userRepo,
-  } as UserRepository;
+    ...(overrides?.userRepo ?? {}),
+  } as unknown as UserRepository;
 
   const userService = new UserService(mockDb, mockUserRepo);
 
@@ -31,7 +33,7 @@ export function createTestContainer(overrides?: Partial<Container>): Container {
     userRepo: mockUserRepo,
     userService,
     ...overrides,
-  };
+  } as Container;
 }
 
 // Usage in tests:
