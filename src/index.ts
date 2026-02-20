@@ -41,7 +41,12 @@ const openApiApp = createOpenAPIApp();
 
 // CORS middleware - allow requests from localhost:3000
 // CORS middleware configuration
-const allowedOrigins = ['https://autofin-be.onrender.com', 'https://autofin-fe.vercel.app'];
+const allowedOrigins = [
+  'https://autofin-be.onrender.com',
+  'https://autofin-fe.vercel.app',
+  'https://autofin-1031445632496.europe-west1.run.app',
+  'https://www.autofin.site',
+];
 
 if (process.env.NODE_ENV !== 'production') {
   allowedOrigins.push('http://localhost:5173');
