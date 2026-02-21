@@ -126,7 +126,7 @@ export const createInsightsRouter = () => {
           createdAt: insight.createdAt.toISOString(),
         })),
       },
-      200 as const
+      200
     );
   });
 
@@ -166,14 +166,14 @@ export const createInsightsRouter = () => {
             createdAt: insight.createdAt.toISOString(),
           },
         },
-        201 as const
+        201
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       if (message.includes('No transactions')) {
-        return c.json({ error: 'No transactions in the selected period', message }, 400 as const);
+        return c.json({ error: 'No transactions in the selected period', message }, 400);
       }
-      return c.json({ error: 'Failed to generate insights', message }, 500 as const);
+      return c.json({ error: 'Failed to generate insights', message }, 500);
     }
   });
 

@@ -166,4 +166,48 @@ export class GmailOAuthRepository extends BaseRepository {
       .set({ historyId, updatedAt: new Date() })
       .where(eq(gmailOAuthTokens.emailAddress, emailAddress));
   }
+
+  /**
+   * Get watch label IDs for a user
+   */
+  async getWatchLabelIds(userId: string): Promise<string[]> {
+    const token = await this.findByUserId(userId);
+    return (token?.watchLabelIds ?? []) as string[];
+  }
+
+  /**
+   * Set watch label IDs for a user
+   */
+  async setWatchLabelIds(userId: string, labelIds: string[]): Promise<void> {
+    await this.updateByUserId(userId, { watchLabelIds: labelIds });
+  }
+
+  /**
+   * Get Autofin filter IDs for a user
+   */
+  async getAutofinFilterIds(userId: string): Promise<string[]> {
+    const token = await this.findByUserId(userId);
+    return (token?.autofinFilterIds ?? []) as string[];
+  }
+
+  /**
+   * Get filter sender emails for a user
+   */
+  async getFilterSenderEmails(userId: string): Promise<string[]> {
+    const token = await this.findByUserId(userId);
+    return (token?.filterSenderEmails ?? []) as string[];
+  }
+
+  /**
+   * Set filter config (filter IDs and sender emails) for a user
+   */
+  async setFilterConfig(
+    userId: string,
+    config: { filterIds: string[]; senderEmails: string[] }
+  ): Promise<void> {
+    await this.updateByUserId(userId, {
+      autofinFilterIds: config.filterIds,
+      filterSenderEmails: config.senderEmails,
+    });
+  }
 }

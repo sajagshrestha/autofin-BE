@@ -58,6 +58,9 @@ export const gmailOAuthTokens = pgTable('gmail_oauth_tokens', {
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(), // Token expiration time
   scope: text('scope').notNull(), // OAuth scopes granted
   historyId: text('history_id'), // Last processed Gmail history ID for watch notifications
+  watchLabelIds: jsonb('watch_label_ids').$type<string[]>().default([]),
+  autofinFilterIds: jsonb('autofin_filter_ids').$type<string[]>().default([]),
+  filterSenderEmails: jsonb('filter_sender_emails').$type<string[]>().default([]),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

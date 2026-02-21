@@ -57,7 +57,7 @@ function createExtractionSchema(_categoryIds: string[]) {
           .describe('Brief explanation of why this category was chosen (optional)'),
       })
       .transform((o) => ({
-        action: 'select_existing' as const,
+        action: 'select_existing',
         categoryId: o.categoryId ?? o.id ?? '',
         reason: o.reason,
       })),
@@ -84,7 +84,7 @@ function createExtractionSchema(_categoryIds: string[]) {
           ),
       })
       .transform((o) => ({
-        action: 'create_new' as const,
+        action: 'create_new',
         newCategoryName: (o.newCategoryName ?? o.name ?? '').slice(0, 50) || 'Other',
         newCategoryIcon: o.newCategoryIcon ?? o.icon ?? '📁',
         reason: o.reason,
@@ -101,7 +101,7 @@ function createExtractionSchema(_categoryIds: string[]) {
         id: z.string().optional(),
       })
       .transform((o) => ({
-        action: 'uncategorized' as const,
+        action: 'uncategorized',
         categoryId: o.categoryId ?? o.id ?? '',
       })),
   ]);

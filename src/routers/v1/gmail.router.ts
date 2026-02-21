@@ -1,5 +1,4 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
-import { AUTOFIN_LABEL_IDS } from '@/constants';
 import { inngest } from '@/inngest/client';
 import type { Container } from '@/lib/container';
 import { createRoute } from '@/lib/openapi';
@@ -16,6 +15,10 @@ import {
   GmailMessageParamsSchema,
   GmailMessageSchema,
   GmailProfileSchema,
+  GmailSenderFilterRequestSchema,
+  GmailSenderFilterResponseSchema,
+  GmailWatchLabelsRequestSchema,
+  GmailWatchLabelsResponseSchema,
   GmailWatchRequestSchema,
   GmailWatchResponseSchema,
   GmailWatchStatusResponseSchema,
@@ -93,7 +96,7 @@ export const createGmailRouter = () => {
 
       const profile = await container.gmailService.getProfile(user.id);
 
-      return c.json(profile, 200 as const);
+      return c.json(profile, 200);
     } catch (error) {
       console.error('Error fetching Gmail profile:', error);
 
@@ -103,7 +106,7 @@ export const createGmailRouter = () => {
             error: 'No Gmail OAuth token found',
             message: 'Please authorize Gmail access first',
           },
-          404 as const
+          404
         );
       }
 
@@ -112,7 +115,7 @@ export const createGmailRouter = () => {
           error: 'Failed to fetch Gmail profile',
           message: error instanceof Error ? error.message : 'Unknown error',
         },
-        500 as const
+        500
       );
     }
   });
@@ -172,7 +175,7 @@ export const createGmailRouter = () => {
 
       const response = await container.gmailService.listLabels(user.id);
 
-      return c.json(response, 200 as const);
+      return c.json(response, 200);
     } catch (error) {
       console.error('Error fetching Gmail labels:', error);
 
@@ -182,7 +185,7 @@ export const createGmailRouter = () => {
             error: 'No Gmail OAuth token found',
             message: 'Please authorize Gmail access first',
           },
-          404 as const
+          404
         );
       }
 
@@ -191,7 +194,377 @@ export const createGmailRouter = () => {
           error: 'Failed to fetch Gmail labels',
           message: error instanceof Error ? error.message : 'Unknown error',
         },
-        500 as const
+        500
+      );
+    }
+  });
+
+  /**
+   * Configure watch labels
+   * POST /api/v1/gmail/watch/labels
+   */
+  const watchLabelsRoute = createRoute({
+    method: 'post',
+    path: '/watch/labels',
+    summary: 'Configure watch labels',
+    description:
+      'Set which Gmail labels to monitor. Provide createLabelName to create a new label, or labelIds to use existing labels.',
+    tags: ['Gmail'],
+    security: [{ Bearer: [] }],
+    request: {
+      body: {
+        content: {
+          'application/json': {
+            schema: GmailWatchLabelsRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Labels configured successfully',
+        content: {
+          'application/json': {
+            schema: GmailWatchLabelsResponseSchema,
+          },
+        },
+      },
+      404: {
+        description: 'No Gmail OAuth token found',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+      500: {
+        description: 'Failed to configure labels',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+      401: {
+        description: 'Unauthorized',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+    },
+  });
+
+  router.openapi(watchLabelsRoute, async (c) => {
+    try {
+      const user = c.get('user');
+      const container = c.get('container');
+      const body = c.req.valid('json');
+
+      let labelIds: string[];
+
+      if (body.createLabelName) {
+        const label = await container.gmailService.findOrCreateMonitorLabel(
+          user.id,
+          body.createLabelName
+        );
+        labelIds = [label.id];
+      } else if (body.labelIds && body.labelIds.length > 0) {
+        for (const labelId of body.labelIds) {
+          await container.gmailService.getLabel(user.id, labelId);
+        }
+        labelIds = body.labelIds;
+      } else {
+        const label = await container.gmailService.findOrCreateMonitorLabel(user.id);
+        labelIds = [label.id];
+      }
+
+      await container.gmailOAuthRepo.setWatchLabelIds(user.id, labelIds);
+
+      return c.json({ labelIds }, 200);
+    } catch (error) {
+      console.error('Error configuring watch labels:', error);
+
+      if (error instanceof Error && error.message.includes('No Gmail OAuth token')) {
+        return c.json(
+          {
+            error: 'No Gmail OAuth token found',
+            message: 'Please authorize Gmail access first',
+          },
+          404
+        );
+      }
+
+      return c.json(
+        {
+          error: 'Failed to configure labels',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
+        500
+      );
+    }
+  });
+
+  /**
+   * Set sender filter - auto-apply monitor label to emails from these addresses
+   * POST /api/v1/gmail/filters/senders
+   */
+  const setSenderFilterRoute = createRoute({
+    method: 'post',
+    path: '/filters/senders',
+    summary: 'Set sender filter',
+    description:
+      'Create a Gmail filter that auto-applies the monitor label to emails from the given sender addresses.',
+    tags: ['Gmail'],
+    security: [{ Bearer: [] }],
+    request: {
+      body: {
+        content: {
+          'application/json': {
+            schema: GmailSenderFilterRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Filter created successfully',
+        content: {
+          'application/json': {
+            schema: GmailSenderFilterResponseSchema,
+          },
+        },
+      },
+      404: {
+        description: 'No Gmail OAuth token found',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+      500: {
+        description: 'Failed to create filter',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+      401: {
+        description: 'Unauthorized',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+    },
+  });
+
+  router.openapi(setSenderFilterRoute, async (c) => {
+    try {
+      const user = c.get('user');
+      const container = c.get('container');
+      const body = c.req.valid('json');
+
+      const result = await container.gmailService.setSenderFilterEmails(user.id, body.emails);
+
+      return c.json(
+        {
+          filterId: result.filterId,
+          emails: body.emails,
+        },
+        200
+      );
+    } catch (error) {
+      console.error('Error setting sender filter:', error);
+
+      if (error instanceof Error && error.message.includes('No Gmail OAuth token')) {
+        return c.json(
+          {
+            error: 'No Gmail OAuth token found',
+            message: 'Please authorize Gmail access first',
+          },
+          404
+        );
+      }
+
+      return c.json(
+        {
+          error: 'Failed to create filter',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
+        500
+      );
+    }
+  });
+
+  /**
+   * Get sender filter config
+   * GET /api/v1/gmail/filters/senders
+   */
+  const getSenderFilterRoute = createRoute({
+    method: 'get',
+    path: '/filters/senders',
+    summary: 'Get sender filter',
+    description: 'Returns the current sender filter config (emails being filtered).',
+    tags: ['Gmail'],
+    security: [{ Bearer: [] }],
+    responses: {
+      200: {
+        description: 'Filter config retrieved successfully',
+        content: {
+          'application/json': {
+            schema: GmailSenderFilterResponseSchema,
+          },
+        },
+      },
+      404: {
+        description: 'No Gmail OAuth token found',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+      500: {
+        description: 'Failed to get filter config',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+      401: {
+        description: 'Unauthorized',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+    },
+  });
+
+  router.openapi(getSenderFilterRoute, async (c) => {
+    try {
+      const user = c.get('user');
+      const container = c.get('container');
+
+      const emails = await container.gmailOAuthRepo.getFilterSenderEmails(user.id);
+
+      return c.json(
+        {
+          filterId: emails.length > 0 ? 'configured' : '',
+          emails,
+        },
+        200
+      );
+    } catch (error) {
+      console.error('Error getting sender filter:', error);
+
+      if (error instanceof Error && error.message.includes('No Gmail OAuth token')) {
+        return c.json(
+          {
+            error: 'No Gmail OAuth token found',
+            message: 'Please authorize Gmail access first',
+          },
+          404
+        );
+      }
+
+      return c.json(
+        {
+          error: 'Failed to get filter config',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
+        500
+      );
+    }
+  });
+
+  /**
+   * Delete sender filter
+   * DELETE /api/v1/gmail/filters/senders
+   */
+  const deleteSenderFilterRoute = createRoute({
+    method: 'delete',
+    path: '/filters/senders',
+    summary: 'Delete sender filter',
+    description: 'Removes the Gmail sender filter and clears stored config.',
+    tags: ['Gmail'],
+    security: [{ Bearer: [] }],
+    responses: {
+      200: {
+        description: 'Filter deleted successfully',
+        content: {
+          'application/json': {
+            schema: SuccessSchema,
+          },
+        },
+      },
+      404: {
+        description: 'No Gmail OAuth token found',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+      500: {
+        description: 'Failed to delete filter',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+      401: {
+        description: 'Unauthorized',
+        content: {
+          'application/json': {
+            schema: ErrorSchema,
+          },
+        },
+      },
+    },
+  });
+
+  router.openapi(deleteSenderFilterRoute, async (c) => {
+    try {
+      const user = c.get('user');
+      const container = c.get('container');
+
+      await container.gmailService.setSenderFilterEmails(user.id, []);
+
+      return c.json(
+        {
+          success: true,
+          message: 'Sender filter deleted successfully',
+        },
+        200
+      );
+    } catch (error) {
+      console.error('Error deleting sender filter:', error);
+
+      if (error instanceof Error && error.message.includes('No Gmail OAuth token')) {
+        return c.json(
+          {
+            error: 'No Gmail OAuth token found',
+            message: 'Please authorize Gmail access first',
+          },
+          404
+        );
+      }
+
+      return c.json(
+        {
+          error: 'Failed to delete filter',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
+        500
       );
     }
   });
@@ -264,7 +637,7 @@ export const createGmailRouter = () => {
           messages: result.messages || [],
           nextPageToken: result.nextPageToken,
         },
-        200 as const
+        200
       );
     } catch (error) {
       console.error('Error listing messages:', error);
@@ -275,7 +648,7 @@ export const createGmailRouter = () => {
             error: 'No Gmail OAuth token found',
             message: 'Please authorize Gmail access first',
           },
-          404 as const
+          404
         );
       }
 
@@ -284,7 +657,7 @@ export const createGmailRouter = () => {
           error: 'Failed to list messages',
           message: error instanceof Error ? error.message : 'Unknown error',
         },
-        500 as const
+        500
       );
     }
   });
@@ -349,7 +722,7 @@ export const createGmailRouter = () => {
 
       const message = await container.gmailService.getMessage(user.id, messageId, format ?? 'full');
 
-      return c.json(message, 200 as const);
+      return c.json(message, 200);
     } catch (error) {
       console.error('Error fetching message:', error);
 
@@ -359,7 +732,7 @@ export const createGmailRouter = () => {
             error: 'No Gmail OAuth token found',
             message: 'Please authorize Gmail access first',
           },
-          404 as const
+          404
         );
       }
 
@@ -368,7 +741,7 @@ export const createGmailRouter = () => {
           {
             error: 'Message not found',
           },
-          404 as const
+          404
         );
       }
 
@@ -377,7 +750,7 @@ export const createGmailRouter = () => {
           error: 'Failed to fetch message',
           message: error instanceof Error ? error.message : 'Unknown error',
         },
-        500 as const
+        500
       );
     }
   });
@@ -444,7 +817,7 @@ export const createGmailRouter = () => {
         attachmentId
       );
 
-      return c.json(attachment, 200 as const);
+      return c.json(attachment, 200);
     } catch (error) {
       console.error('Error fetching attachment:', error);
 
@@ -454,7 +827,7 @@ export const createGmailRouter = () => {
             error: 'No Gmail OAuth token found',
             message: 'Please authorize Gmail access first',
           },
-          404 as const
+          404
         );
       }
 
@@ -463,7 +836,7 @@ export const createGmailRouter = () => {
           {
             error: 'Attachment not found',
           },
-          404 as const
+          404
         );
       }
 
@@ -472,7 +845,7 @@ export const createGmailRouter = () => {
           error: 'Failed to fetch attachment',
           message: error instanceof Error ? error.message : 'Unknown error',
         },
-        500 as const
+        500
       );
     }
   });
@@ -539,7 +912,7 @@ export const createGmailRouter = () => {
         maxResults ?? 100
       );
 
-      return c.json({ history }, 200 as const);
+      return c.json({ history }, 200);
     } catch (error) {
       console.error('Error fetching history:', error);
 
@@ -549,7 +922,7 @@ export const createGmailRouter = () => {
             error: 'No Gmail OAuth token found',
             message: 'Please authorize Gmail access first',
           },
-          404 as const
+          404
         );
       }
 
@@ -558,7 +931,7 @@ export const createGmailRouter = () => {
           error: 'Failed to fetch history',
           message: error instanceof Error ? error.message : 'Unknown error',
         },
-        500 as const
+        500
       );
     }
   });
@@ -625,7 +998,7 @@ export const createGmailRouter = () => {
       const container = c.get('container');
 
       const topicName = 'projects/project-4d4e1b26-7614-4156-a58/topics/autofin';
-      const labelIds: string[] = AUTOFIN_LABEL_IDS;
+      const labelIds = await container.gmailService.getWatchLabelIds(user.id);
 
       const response = await container.gmailService.watch(user.id, topicName, labelIds);
 
@@ -653,7 +1026,7 @@ export const createGmailRouter = () => {
         console.warn('Failed to enqueue Inngest Gmail watch resync:', err);
       }
 
-      return c.json(response, 200 as const);
+      return c.json(response, 200);
     } catch (error) {
       console.error('Error starting watch:', error);
 
@@ -663,7 +1036,7 @@ export const createGmailRouter = () => {
             error: 'No Gmail OAuth token found',
             message: 'Please authorize Gmail access first',
           },
-          404 as const
+          404
         );
       }
 
@@ -672,7 +1045,7 @@ export const createGmailRouter = () => {
           error: 'Failed to start watch',
           message: error instanceof Error ? error.message : 'Unknown error',
         },
-        500 as const
+        500
       );
     }
   });
@@ -734,7 +1107,7 @@ export const createGmailRouter = () => {
       const container = c.get('container');
 
       const topicName = 'projects/project-4d4e1b26-7614-4156-a58/topics/autofin';
-      const labelIds: string[] = AUTOFIN_LABEL_IDS;
+      const labelIds = await container.gmailService.getWatchLabelIds(user.id);
 
       // Calling watch() is idempotent - it returns current watch info if one exists
       const response = await container.gmailService.watch(user.id, topicName, labelIds);
@@ -759,7 +1132,7 @@ export const createGmailRouter = () => {
           topicName,
           message: `Watch active, expires in ${Math.round(hoursUntilExpiry)} hours`,
         },
-        200 as const
+        200
       );
     } catch (error) {
       console.error('Error getting watch status:', error);
@@ -770,7 +1143,7 @@ export const createGmailRouter = () => {
             error: 'No Gmail OAuth token found',
             message: 'Please authorize Gmail access first',
           },
-          404 as const
+          404
         );
       }
 
@@ -779,7 +1152,7 @@ export const createGmailRouter = () => {
           error: 'Failed to get watch status',
           message: error instanceof Error ? error.message : 'Unknown error',
         },
-        500 as const
+        500
       );
     }
   });
@@ -853,7 +1226,7 @@ export const createGmailRouter = () => {
           success: true,
           message: 'Gmail watch stopped successfully',
         },
-        200 as const
+        200
       );
     } catch (error) {
       console.error('Error stopping watch:', error);
@@ -864,7 +1237,7 @@ export const createGmailRouter = () => {
             error: 'No Gmail OAuth token found',
             message: 'Please authorize Gmail access first',
           },
-          404 as const
+          404
         );
       }
 
@@ -873,7 +1246,7 @@ export const createGmailRouter = () => {
           error: 'Failed to stop watch',
           message: error instanceof Error ? error.message : 'Unknown error',
         },
-        500 as const
+        500
       );
     }
   });

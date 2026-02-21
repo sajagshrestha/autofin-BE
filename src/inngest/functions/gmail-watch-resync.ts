@@ -39,7 +39,7 @@ export const gmailWatchResync = inngest.createFunction(
   },
   { event: 'gmail/watch.started' },
   async ({ event, step }) => {
-    const { userId, topicName, labelIds } = (event as GmailWatchStartedEvent).data;
+    const { userId, topicName, labelIds: eventLabelIds } = (event as GmailWatchStartedEvent).data;
 
     // Default to 12h; can be overridden with env var compatible with `ms` (e.g. "6h", "1d")
     const interval = process.env.GMAIL_WATCH_RESYNC_INTERVAL || '1d';
@@ -52,6 +52,9 @@ export const gmailWatchResync = inngest.createFunction(
     // eslint-disable-next-line no-constant-condition
     while (true) {
       await step.run('renew-watch', async () => {
+        const labelIds = eventLabelIds?.length
+          ? eventLabelIds
+          : await container.gmailService.getWatchLabelIds(userId);
         const response = await container.gmailService.watch(userId, topicName, labelIds);
         await container.gmailOAuthRepo.updateHistoryId(userId, response.historyId);
         return { historyId: response.historyId, expiration: response.expiration };

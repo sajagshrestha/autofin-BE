@@ -63,7 +63,7 @@ export const createCategoryRouter = () => {
       createdAt: category.createdAt.toISOString(),
     }));
 
-    return c.json({ categories: categoriesWithStringDates }, 200 as const);
+    return c.json({ categories: categoriesWithStringDates }, 200);
   });
 
   // Get category by ID
@@ -114,7 +114,7 @@ export const createCategoryRouter = () => {
     const category = await container.categoryRepo.findById(id);
 
     if (!category) {
-      return c.json({ error: 'Category not found' }, 404 as const);
+      return c.json({ error: 'Category not found' }, 404);
     }
 
     const categoryWithStringDates = {
@@ -122,7 +122,7 @@ export const createCategoryRouter = () => {
       createdAt: category.createdAt.toISOString(),
     };
 
-    return c.json({ category: categoryWithStringDates }, 200 as const);
+    return c.json({ category: categoryWithStringDates }, 200);
   });
 
   // Create custom category
@@ -190,9 +190,9 @@ export const createCategoryRouter = () => {
         createdAt: category.createdAt.toISOString(),
       };
 
-      return c.json({ category: categoryWithStringDates }, 201 as const);
+      return c.json({ category: categoryWithStringDates }, 201);
     } catch (_error) {
-      return c.json({ error: 'Failed to create category' }, 400 as const);
+      return c.json({ error: 'Failed to create category' }, 400);
     }
   });
 
@@ -255,7 +255,7 @@ export const createCategoryRouter = () => {
     if (!category) {
       return c.json(
         { error: 'Category not found or cannot be updated (predefined categories are read-only)' },
-        404 as const
+        404
       );
     }
 
@@ -264,7 +264,7 @@ export const createCategoryRouter = () => {
       createdAt: category.createdAt.toISOString(),
     };
 
-    return c.json({ category: categoryWithStringDates }, 200 as const);
+    return c.json({ category: categoryWithStringDates }, 200);
   });
 
   // Delete custom category
@@ -320,11 +320,11 @@ export const createCategoryRouter = () => {
     if (!deleted) {
       return c.json(
         { error: 'Category not found or cannot be deleted (predefined categories are protected)' },
-        404 as const
+        404
       );
     }
 
-    return c.json({ message: 'Category deleted successfully' }, 200 as const);
+    return c.json({ message: 'Category deleted successfully' }, 200);
   });
 
   return router;

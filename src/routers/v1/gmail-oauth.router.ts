@@ -80,7 +80,7 @@ export const createGmailOAuthRouter = () => {
             error: 'Gmail OAuth not configured',
             message: 'GMAIL_OAUTH_REDIRECT_URI and GMAIL_CLIENT_ID must be set',
           },
-          500 as const
+          500
         );
       }
 
@@ -88,6 +88,7 @@ export const createGmailOAuthRouter = () => {
       const scopes = [
         'https://www.googleapis.com/auth/gmail.readonly',
         'https://www.googleapis.com/auth/gmail.modify',
+        'https://www.googleapis.com/auth/gmail.settings.basic',
       ].join(' ');
 
       // Generate state parameter for CSRF protection
@@ -110,7 +111,7 @@ export const createGmailOAuthRouter = () => {
           authorizationUrl: authUrl.toString(),
           state,
         },
-        200 as const
+        200
       );
     } catch (error) {
       console.error('Error generating authorization URL:', error);
@@ -118,7 +119,7 @@ export const createGmailOAuthRouter = () => {
         {
           error: 'Failed to generate authorization URL',
         },
-        500 as const
+        500
       );
     }
   });
@@ -174,7 +175,7 @@ export const createGmailOAuthRouter = () => {
             error: 'OAuth authorization failed',
             details: error,
           },
-          400 as const
+          400
         );
       }
 
@@ -184,7 +185,7 @@ export const createGmailOAuthRouter = () => {
             error: 'Missing required parameters',
             message: 'code and state query parameters are required',
           },
-          400 as const
+          400
         );
       }
 
@@ -200,7 +201,7 @@ export const createGmailOAuthRouter = () => {
           {
             error: 'Invalid state parameter',
           },
-          400 as const
+          400
         );
       }
 
@@ -214,7 +215,7 @@ export const createGmailOAuthRouter = () => {
           {
             error: 'Gmail OAuth not configured',
           },
-          500 as const
+          500
         );
       }
 
@@ -243,7 +244,7 @@ export const createGmailOAuthRouter = () => {
             error: 'Failed to exchange authorization code',
             details: errorData,
           },
-          400 as const
+          400
         );
       }
 
@@ -265,7 +266,7 @@ export const createGmailOAuthRouter = () => {
           {
             error: 'Failed to fetch Gmail profile',
           },
-          500 as const
+          500
         );
       }
 
@@ -288,7 +289,7 @@ export const createGmailOAuthRouter = () => {
           message: 'Gmail OAuth authorization successful',
           emailAddress: profile.emailAddress,
         },
-        200 as const
+        200
       );
     } catch (error) {
       console.error('Error processing OAuth callback:', error);
@@ -296,7 +297,7 @@ export const createGmailOAuthRouter = () => {
         {
           error: 'Failed to process OAuth callback',
         },
-        500 as const
+        500
       );
     }
   });
@@ -362,7 +363,7 @@ export const createGmailOAuthRouter = () => {
             error: 'No Gmail OAuth token found',
             message: 'Please authorize Gmail access first',
           },
-          404 as const
+          404
         );
       }
 
@@ -374,7 +375,7 @@ export const createGmailOAuthRouter = () => {
           success: true,
           message: 'Token refreshed successfully',
         },
-        200 as const
+        200
       );
     } catch (error) {
       console.error('Error refreshing token:', error);
@@ -383,7 +384,7 @@ export const createGmailOAuthRouter = () => {
           error: 'Failed to refresh token',
           message: error instanceof Error ? error.message : 'Unknown error',
         },
-        500 as const
+        500
       );
     }
   });
@@ -448,7 +449,7 @@ export const createGmailOAuthRouter = () => {
           {
             error: 'No Gmail OAuth token found',
           },
-          404 as const
+          404
         );
       }
 
@@ -476,7 +477,7 @@ export const createGmailOAuthRouter = () => {
           success: true,
           message: 'Gmail OAuth tokens revoked and deleted',
         },
-        200 as const
+        200
       );
     } catch (error) {
       console.error('Error revoking tokens:', error);
@@ -484,7 +485,7 @@ export const createGmailOAuthRouter = () => {
         {
           error: 'Failed to revoke tokens',
         },
-        500 as const
+        500
       );
     }
   });
@@ -541,7 +542,7 @@ export const createGmailOAuthRouter = () => {
             authorized: false,
             message: 'No Gmail OAuth token found',
           },
-          200 as const
+          200
         );
       }
 
@@ -565,7 +566,7 @@ export const createGmailOAuthRouter = () => {
           updatedAt:
             token.updatedAt instanceof Date ? token.updatedAt.toISOString() : token.updatedAt,
         },
-        200 as const
+        200
       );
     } catch (error) {
       console.error('Error getting OAuth status:', error);
@@ -573,7 +574,7 @@ export const createGmailOAuthRouter = () => {
         {
           error: 'Failed to get OAuth status',
         },
-        500 as const
+        500
       );
     }
   });
@@ -631,7 +632,7 @@ export const createGmailOAuthRouter = () => {
             queryTimeMs,
             message: `No token found for email: ${email}`,
           },
-          200 as const
+          200
         );
       }
 
@@ -643,7 +644,7 @@ export const createGmailOAuthRouter = () => {
           queryTimeMs,
           message: 'Token found successfully',
         },
-        200 as const
+        200
       );
     } catch (error) {
       const queryTimeMs = Date.now() - startTime;
@@ -653,7 +654,7 @@ export const createGmailOAuthRouter = () => {
           error: 'Lookup failed',
           message: error instanceof Error ? error.message : 'Unknown error',
         },
-        500 as const
+        500
       );
     }
   });

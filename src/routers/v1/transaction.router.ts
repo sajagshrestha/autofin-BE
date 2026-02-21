@@ -105,7 +105,7 @@ export const createTransactionRouter = () => {
     );
 
     if (!transactionWithCategory) {
-      return c.json({ error: 'Failed to retrieve created transaction' }, 500 as const);
+      return c.json({ error: 'Failed to retrieve created transaction' }, 500);
     }
 
     const transactionWithStringDates = {
@@ -126,7 +126,7 @@ export const createTransactionRouter = () => {
       transactionDate: transactionWithCategory.transactionDate?.toISOString() ?? null,
     });
 
-    return c.json({ transaction: transactionWithStringDates }, 201 as const);
+    return c.json({ transaction: transactionWithStringDates }, 201);
   });
 
   // Create transaction from SMS
@@ -207,7 +207,7 @@ export const createTransactionRouter = () => {
     ) {
       return c.json(
         { error: 'Could not extract valid transaction from SMS', message: 'Not a transaction' },
-        400 as const
+        400
       );
     }
 
@@ -273,7 +273,7 @@ export const createTransactionRouter = () => {
     );
 
     if (!transactionWithCategory) {
-      return c.json({ error: 'Failed to retrieve created transaction' }, 500 as const);
+      return c.json({ error: 'Failed to retrieve created transaction' }, 500);
     }
 
     const resultBody = {
@@ -296,7 +296,7 @@ export const createTransactionRouter = () => {
       transactionDate: transactionWithCategory.transactionDate?.toISOString() ?? null,
     });
 
-    return c.json(resultBody, 201 as const);
+    return c.json(resultBody, 201);
   });
 
   // Get all transactions with filters
@@ -368,7 +368,7 @@ export const createTransactionRouter = () => {
         limit,
         offset,
       },
-      200 as const
+      200
     );
   });
 
@@ -431,7 +431,7 @@ export const createTransactionRouter = () => {
           netAmount: summary.totalCredit - summary.totalDebit,
         },
       },
-      200 as const
+      200
     );
   });
 
@@ -484,7 +484,7 @@ export const createTransactionRouter = () => {
     const transaction = await container.transactionRepo.findByIdWithCategory(id);
 
     if (!transaction || transaction.userId !== user.id) {
-      return c.json({ error: 'Transaction not found' }, 404 as const);
+      return c.json({ error: 'Transaction not found' }, 404);
     }
 
     const transactionWithStringDates = {
@@ -495,7 +495,7 @@ export const createTransactionRouter = () => {
       updatedAt: transaction.updatedAt.toISOString(),
     };
 
-    return c.json({ transaction: transactionWithStringDates }, 200 as const);
+    return c.json({ transaction: transactionWithStringDates }, 200);
   });
 
   // Update transaction
@@ -567,13 +567,13 @@ export const createTransactionRouter = () => {
     const transaction = await container.transactionRepo.update(id, user.id, updateData);
 
     if (!transaction) {
-      return c.json({ error: 'Transaction not found' }, 404 as const);
+      return c.json({ error: 'Transaction not found' }, 404);
     }
 
     // Fetch with category info
     const transactionWithCategory = await container.transactionRepo.findByIdWithCategory(id);
     if (!transactionWithCategory) {
-      return c.json({ error: 'Transaction not found' }, 404 as const);
+      return c.json({ error: 'Transaction not found' }, 404);
     }
 
     const transactionWithStringDates = {
@@ -584,7 +584,7 @@ export const createTransactionRouter = () => {
       updatedAt: transactionWithCategory.updatedAt.toISOString(),
     };
 
-    return c.json({ transaction: transactionWithStringDates }, 200 as const);
+    return c.json({ transaction: transactionWithStringDates }, 200);
   });
 
   // Delete transaction
@@ -638,10 +638,10 @@ export const createTransactionRouter = () => {
     const deleted = await container.transactionRepo.delete(id, user.id);
 
     if (!deleted) {
-      return c.json({ error: 'Transaction not found' }, 404 as const);
+      return c.json({ error: 'Transaction not found' }, 404);
     }
 
-    return c.json({ message: 'Transaction deleted successfully' }, 200 as const);
+    return c.json({ message: 'Transaction deleted successfully' }, 200);
   });
 
   return router;

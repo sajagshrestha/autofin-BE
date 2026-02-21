@@ -343,3 +343,59 @@ export const GmailLabelsListResponseSchema = z.object({
 });
 
 export type GmailLabelsListResponse = z.infer<typeof GmailLabelsListResponseSchema>;
+
+/**
+ * Watch labels config request
+ */
+export const GmailWatchLabelsRequestSchema = z.object({
+  labelIds: z.array(z.string()).optional().openapi({
+    description: 'Label IDs to use for monitoring (validate they exist)',
+  }),
+  createLabelName: z.string().optional().openapi({
+    description: 'Create a label with this name and use it for monitoring',
+    example: 'Autofin',
+  }),
+});
+
+export type GmailWatchLabelsRequest = z.infer<typeof GmailWatchLabelsRequestSchema>;
+
+/**
+ * Watch labels config response
+ */
+export const GmailWatchLabelsResponseSchema = z.object({
+  labelIds: z.array(z.string()).openapi({
+    description: 'Label IDs being used for monitoring',
+  }),
+});
+
+export type GmailWatchLabelsResponse = z.infer<typeof GmailWatchLabelsResponseSchema>;
+
+/**
+ * Sender filter request - emails to auto-apply monitor label
+ */
+export const GmailSenderFilterRequestSchema = z.object({
+  emails: z
+    .array(z.string().email())
+    .min(1)
+    .max(100)
+    .openapi({
+      description: 'Sender email addresses to filter (e.g. bank alerts)',
+      example: ['alerts@bank.com', 'noreply@anotherbank.com'],
+    }),
+});
+
+export type GmailSenderFilterRequest = z.infer<typeof GmailSenderFilterRequestSchema>;
+
+/**
+ * Sender filter response
+ */
+export const GmailSenderFilterResponseSchema = z.object({
+  filterId: z.string().openapi({
+    description: 'Gmail filter ID (empty if filter was deleted)',
+  }),
+  emails: z.array(z.string()).openapi({
+    description: 'Sender emails being filtered',
+  }),
+});
+
+export type GmailSenderFilterResponse = z.infer<typeof GmailSenderFilterResponseSchema>;

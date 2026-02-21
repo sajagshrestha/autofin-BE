@@ -1,4 +1,3 @@
-import { AUTOFIN_LABEL_IDS } from '@/constants';
 import type { Database } from '@/db/connection';
 import { localToUtc } from '@/lib/timezone';
 import type { CategoryRepository } from '@/repositories/category.repository';
@@ -361,6 +360,9 @@ export class GmailService extends BaseService {
       icon: c.icon,
     }));
 
+    // Fetch user's monitor label IDs once for this batch
+    const watchLabelIds = await this.getWatchLabelIds(userId);
+
     // Process each history entry
     for (const historyEntry of history) {
       if (historyEntry.messagesAdded) {
@@ -369,8 +371,8 @@ export class GmailService extends BaseService {
           const messageId = messageAdded.message.id;
           const labelIds = messageAdded.message.labelIds;
 
-          // Skip if not an autofin message
-          if (!labelIds.some((labelId) => AUTOFIN_LABEL_IDS.includes(labelId))) {
+          // Skip if not an autofin message (must have user's monitor label)
+          if (!labelIds.some((labelId) => watchLabelIds.includes(labelId))) {
             continue;
           }
 
@@ -714,6 +716,114 @@ export class GmailService extends BaseService {
   async findLabelByName(userId: string, labelName: string): Promise<GmailLabel | null> {
     const { labels } = await this.listLabels(userId);
     return labels.find((label) => label.name.toLowerCase() === labelName.toLowerCase()) || null;
+  }
+
+  /**
+   * Create a new label in Gmail
+   */
+  async createLabel(userId: string, labelName: string): Promise<GmailLabel> {
+    const body = {
+      name: labelName,
+      labelListVisibility: 'labelShow',
+      messageListVisibility: 'show',
+    };
+    return this.gmailRequest<GmailLabel>(userId, '/users/me/labels', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  /**
+   * Find or create the monitor label (default: "Autofin")
+   */
+  async findOrCreateMonitorLabel(
+    userId: string,
+    labelName: string = 'Autofin'
+  ): Promise<GmailLabel> {
+    const existing = await this.findLabelByName(userId, labelName);
+    if (existing) {
+      return existing;
+    }
+    return this.createLabel(userId, labelName);
+  }
+
+  /**
+   * Get watch label IDs for a user. Auto-creates "Autofin" label if none configured.
+   */
+  async getWatchLabelIds(userId: string): Promise<string[]> {
+    let labelIds = await this.gmailOAuthRepo.getWatchLabelIds(userId);
+    if (labelIds.length === 0) {
+      const label = await this.findOrCreateMonitorLabel(userId);
+      labelIds = [label.id];
+      await this.gmailOAuthRepo.setWatchLabelIds(userId, labelIds);
+    }
+    return labelIds;
+  }
+
+  /**
+   * Create a Gmail filter
+   */
+  async createFilter(
+    userId: string,
+    criteria: { query?: string; from?: string },
+    addLabelIds: string[]
+  ): Promise<{ id: string }> {
+    const body = {
+      criteria,
+      action: { addLabelIds },
+    };
+    return this.gmailRequest<{ id: string }>(userId, '/users/me/settings/filters', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  /**
+   * Delete a Gmail filter
+   */
+  async deleteFilter(userId: string, filterId: string): Promise<void> {
+    await this.gmailRequest(userId, `/users/me/settings/filters/${filterId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Set sender filter emails: delete existing filters, create new one, store config.
+   * Ensures Autofin label exists before creating the filter, so the filter can apply it to matching emails.
+   */
+  async setSenderFilterEmails(userId: string, emails: string[]): Promise<{ filterId: string }> {
+    if (emails.length === 0) {
+      const existingFilterIds = await this.gmailOAuthRepo.getAutofinFilterIds(userId);
+      for (const filterId of existingFilterIds) {
+        try {
+          await this.deleteFilter(userId, filterId);
+        } catch (err) {
+          console.warn(`Failed to delete filter ${filterId}:`, err);
+        }
+      }
+      await this.gmailOAuthRepo.setFilterConfig(userId, { filterIds: [], senderEmails: [] });
+      return { filterId: '' };
+    }
+
+    // Ensure Autofin label exists before creating filter (create if not already configured)
+    const labelIds = await this.getWatchLabelIds(userId);
+
+    const existingFilterIds = await this.gmailOAuthRepo.getAutofinFilterIds(userId);
+    for (const filterId of existingFilterIds) {
+      try {
+        await this.deleteFilter(userId, filterId);
+      } catch (err) {
+        console.warn(`Failed to delete filter ${filterId}:`, err);
+      }
+    }
+
+    const query = emails.map((e) => `from:${e.trim()}`).join(' OR ');
+    const filter = await this.createFilter(userId, { query }, labelIds);
+    await this.gmailOAuthRepo.setFilterConfig(userId, {
+      filterIds: [filter.id],
+      senderEmails: emails,
+    });
+    return { filterId: filter.id };
   }
 
   /**

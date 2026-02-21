@@ -65,7 +65,7 @@ export const createUserRouter = () => {
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
     }));
-    return c.json({ users: usersWithStringDates }, 200 as const);
+    return c.json({ users: usersWithStringDates }, 200);
   });
 
   // Get user by ID
@@ -115,7 +115,7 @@ export const createUserRouter = () => {
     const user = await container.userService.getUserById(id);
 
     if (!user) {
-      return c.json({ error: 'User not found' }, 404 as const);
+      return c.json({ error: 'User not found' }, 404);
     }
 
     // Convert Date objects to ISO strings
@@ -124,7 +124,7 @@ export const createUserRouter = () => {
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
     };
-    return c.json({ user: userWithStringDates }, 200 as const);
+    return c.json({ user: userWithStringDates }, 200);
   });
 
   // Create user
@@ -188,9 +188,9 @@ export const createUserRouter = () => {
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       };
-      return c.json({ user: userWithStringDates }, 201 as const);
+      return c.json({ user: userWithStringDates }, 201);
     } catch (_error) {
-      return c.json({ error: 'Failed to create user' }, 400 as const);
+      return c.json({ error: 'Failed to create user' }, 400);
     }
   });
 
@@ -250,7 +250,7 @@ export const createUserRouter = () => {
     const user = await container.userService.updateUser(id, body);
 
     if (!user) {
-      return c.json({ error: 'User not found' }, 404 as const);
+      return c.json({ error: 'User not found' }, 404);
     }
 
     // Convert Date objects to ISO strings
@@ -259,7 +259,7 @@ export const createUserRouter = () => {
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
     };
-    return c.json({ user: userWithStringDates }, 200 as const);
+    return c.json({ user: userWithStringDates }, 200);
   });
 
   // Delete user
@@ -312,10 +312,10 @@ export const createUserRouter = () => {
     const deleted = await container.userService.deleteUser(id);
 
     if (!deleted) {
-      return c.json({ error: 'User not found' }, 404 as const);
+      return c.json({ error: 'User not found' }, 404);
     }
 
-    return c.json({ message: 'User deleted successfully' }, 200 as const);
+    return c.json({ message: 'User deleted successfully' }, 200);
   });
 
   return router;
