@@ -328,7 +328,7 @@ export class TransactionExtractorService {
       }
 
       const txn = extracted.transaction;
-      const categoryAction = txn.category;
+      const categoryAction = txn.category as CategoryAction;
 
       let categoryId: string | null = null;
       let categoryName: string | null = null;
@@ -446,7 +446,7 @@ export class TransactionExtractorService {
       }
 
       const txn = extracted.transaction;
-      const categoryAction = txn.category;
+      const categoryAction = txn.category as CategoryAction;
 
       let categoryId: string | null = null;
       let categoryName: string | null = null;
