@@ -369,7 +369,7 @@ export class GmailService extends BaseService {
         // New messages received
         for (const messageAdded of historyEntry.messagesAdded) {
           const messageId = messageAdded.message.id;
-          const labelIds = messageAdded.message.labelIds;
+          const labelIds = messageAdded.message.labelIds ?? [];
 
           // Skip if not an autofin message (must have user's monitor label)
           if (!labelIds.some((labelId) => watchLabelIds.includes(labelId))) {
@@ -404,7 +404,7 @@ export class GmailService extends BaseService {
             console.log('To:', headers.to || 'Unknown');
             console.log('Subject:', headers.subject || '(No Subject)');
             console.log('Date:', headers.date || message.internalDate);
-            console.log('Labels:', message.labelIds.join(', '));
+            console.log('Labels:', (message.labelIds ?? []).join(', '));
             console.log('Snippet:', message.snippet);
             console.log('Body Preview:', body.substring(0, 500) + (body.length > 500 ? '...' : ''));
             console.log('=========================================');
@@ -522,7 +522,7 @@ export class GmailService extends BaseService {
             }
 
             // Mark the email as read (remove UNREAD label)
-            if (message.labelIds.includes('UNREAD')) {
+            if ((message.labelIds ?? []).includes('UNREAD')) {
               try {
                 await this.markAsRead(userId, messageId);
                 console.log(`Marked message ${messageId} as read`);
