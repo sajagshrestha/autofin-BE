@@ -85,7 +85,7 @@ function createExtractionSchema(_categoryIds: string[]) {
       })
       .transform((o) => ({
         action: 'create_new',
-        newCategoryName: (o.newCategoryName ?? o.name ?? '').slice(0, 50) || 'Other',
+        newCategoryName: (o.newCategoryName ?? o.name ?? '').slice(0, 50) || '',
         newCategoryIcon: o.newCategoryIcon ?? o.icon ?? '📁',
         reason: o.reason,
       })),
@@ -220,6 +220,7 @@ CATEGORY SELECTION RULES:
   - Use action: "create_new" to suggest a new category
   - New category names should be specific but reusable (e.g., "Subscriptions", "Pet Care", "Education")
   - Avoid creating one-off categories for specific merchants (don't create "Amazon" category, use "Shopping")
+  - NEVER create a category called "Other" or "Others" – use action: "uncategorized" instead
 - If you cannot determine a category from the remarks, use action: "uncategorized" with the Uncategorized category ID from the list
 
 IMPORTANT GUIDELINES:
@@ -353,16 +354,26 @@ export class TransactionExtractorService {
 
         console.log(`AI selected uncategorized category: ${categoryName} (${categoryId})`);
       } else if (categoryAction.action === 'create_new') {
-        // AI wants to create a new category
-        newCategory = {
-          name: categoryAction.newCategoryName,
-          icon: categoryAction.newCategoryIcon,
-        };
-        categoryName = categoryAction.newCategoryName;
-
-        console.log(
-          `AI suggests new category: ${categoryAction.newCategoryIcon} ${categoryAction.newCategoryName}${categoryAction.reason ? ` - Reason: ${categoryAction.reason}` : ''}`
-        );
+        const name = categoryAction.newCategoryName.trim();
+        const isGenericOther =
+          !name || name.toLowerCase() === 'other' || name.toLowerCase() === 'others';
+        if (isGenericOther) {
+          // No meaningful new category – use Uncategorized instead
+          categoryId = uncategorized?.id ?? null;
+          categoryName = uncategorized?.name ?? 'Uncategorized';
+          console.log(
+            `AI suggested generic/empty category – using Uncategorized: ${categoryName} (${categoryId})`
+          );
+        } else {
+          newCategory = {
+            name: categoryAction.newCategoryName,
+            icon: categoryAction.newCategoryIcon,
+          };
+          categoryName = categoryAction.newCategoryName;
+          console.log(
+            `AI suggests new category: ${categoryAction.newCategoryIcon} ${categoryAction.newCategoryName}${categoryAction.reason ? ` - Reason: ${categoryAction.reason}` : ''}`
+          );
+        }
       }
 
       return {
@@ -463,11 +474,19 @@ export class TransactionExtractorService {
         categoryId = selectedCategory?.id || uncategorized?.id || null;
         categoryName = selectedCategory?.name || uncategorized?.name || 'Uncategorized';
       } else if (categoryAction.action === 'create_new') {
-        newCategory = {
-          name: categoryAction.newCategoryName,
-          icon: categoryAction.newCategoryIcon,
-        };
-        categoryName = categoryAction.newCategoryName;
+        const name = categoryAction.newCategoryName.trim();
+        const isGenericOther =
+          !name || name.toLowerCase() === 'other' || name.toLowerCase() === 'others';
+        if (isGenericOther) {
+          categoryId = uncategorized?.id ?? null;
+          categoryName = uncategorized?.name ?? 'Uncategorized';
+        } else {
+          newCategory = {
+            name: categoryAction.newCategoryName,
+            icon: categoryAction.newCategoryIcon,
+          };
+          categoryName = categoryAction.newCategoryName;
+        }
       }
 
       return {
