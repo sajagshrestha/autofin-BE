@@ -354,24 +354,22 @@ export class TransactionExtractorService {
 
         console.log(`AI selected uncategorized category: ${categoryName} (${categoryId})`);
       } else if (categoryAction.action === 'create_new') {
-        const name = categoryAction.newCategoryName.trim();
-        const isGenericOther =
-          !name || name.toLowerCase() === 'other' || name.toLowerCase() === 'others';
-        if (isGenericOther) {
-          // No meaningful new category – use Uncategorized instead
+        const name = categoryAction.newCategoryName?.trim();
+        if (!name) {
+          // No new category name – default to Uncategorized
           categoryId = uncategorized?.id ?? null;
           categoryName = uncategorized?.name ?? 'Uncategorized';
           console.log(
-            `AI suggested generic/empty category – using Uncategorized: ${categoryName} (${categoryId})`
+            `No new category name – using Uncategorized: ${categoryName} (${categoryId})`
           );
         } else {
           newCategory = {
-            name: categoryAction.newCategoryName,
+            name,
             icon: categoryAction.newCategoryIcon,
           };
-          categoryName = categoryAction.newCategoryName;
+          categoryName = name;
           console.log(
-            `AI suggests new category: ${categoryAction.newCategoryIcon} ${categoryAction.newCategoryName}${categoryAction.reason ? ` - Reason: ${categoryAction.reason}` : ''}`
+            `AI suggests new category: ${categoryAction.newCategoryIcon} ${name}${categoryAction.reason ? ` - Reason: ${categoryAction.reason}` : ''}`
           );
         }
       }
@@ -474,18 +472,16 @@ export class TransactionExtractorService {
         categoryId = selectedCategory?.id || uncategorized?.id || null;
         categoryName = selectedCategory?.name || uncategorized?.name || 'Uncategorized';
       } else if (categoryAction.action === 'create_new') {
-        const name = categoryAction.newCategoryName.trim();
-        const isGenericOther =
-          !name || name.toLowerCase() === 'other' || name.toLowerCase() === 'others';
-        if (isGenericOther) {
+        const name = categoryAction.newCategoryName?.trim();
+        if (!name) {
           categoryId = uncategorized?.id ?? null;
           categoryName = uncategorized?.name ?? 'Uncategorized';
         } else {
           newCategory = {
-            name: categoryAction.newCategoryName,
+            name,
             icon: categoryAction.newCategoryIcon,
           };
-          categoryName = categoryAction.newCategoryName;
+          categoryName = name;
         }
       }
 
