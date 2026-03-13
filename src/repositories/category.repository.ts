@@ -1,4 +1,4 @@
-import { and, eq, isNull, or } from 'drizzle-orm';
+import { and, eq, isNull, or, sql } from 'drizzle-orm';
 import { type Category, categories, type NewCategory } from '@/db/schema';
 import { BaseRepository } from './base.repository';
 
@@ -53,11 +53,17 @@ export class CategoryRepository extends BaseRepository {
    * Find a category by name for a user (checking both predefined and custom)
    */
   async findByNameForUser(name: string, userId: string): Promise<Category | null> {
+    const normalizedName = name.trim().toLowerCase();
+    if (!normalizedName) return null;
+
     const result = await this.db
       .select()
       .from(categories)
       .where(
-        and(eq(categories.name, name), or(isNull(categories.userId), eq(categories.userId, userId)))
+        and(
+          sql`lower(trim(${categories.name})) = ${normalizedName}`,
+          or(isNull(categories.userId), eq(categories.userId, userId))
+        )
       )
       .limit(1);
     return result[0] || null;

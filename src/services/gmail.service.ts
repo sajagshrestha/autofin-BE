@@ -433,18 +433,28 @@ export class GmailService extends BaseService {
               if (txn.newCategory) {
                 // AI suggested creating a new category
                 try {
-                  const newCategory = await this.categoryRepo.create({
-                    id: crypto.randomUUID(),
-                    userId, // Associate with this user
-                    name: txn.newCategory.name,
-                    icon: txn.newCategory.icon,
-                    isDefault: false, // User-specific category created by AI
-                    isAiCreated: true, // Created by AI
-                  });
-                  categoryId = newCategory.id;
-                  console.log(
-                    `Created new category: ${newCategory.icon} ${newCategory.name} (${newCategory.id})`
+                  const existingCategory = await this.categoryRepo.findByNameForUser(
+                    txn.newCategory.name,
+                    userId
                   );
+
+                  if (existingCategory) {
+                    categoryId = existingCategory.id;
+                    console.log(`Using existing category: ${existingCategory.name}`);
+                  } else {
+                    const newCategory = await this.categoryRepo.create({
+                      id: crypto.randomUUID(),
+                      userId, // Associate with this user
+                      name: txn.newCategory.name,
+                      icon: txn.newCategory.icon,
+                      isDefault: false, // User-specific category created by AI
+                      isAiCreated: true, // Created by AI
+                    });
+                    categoryId = newCategory.id;
+                    console.log(
+                      `Created new category: ${newCategory.icon} ${newCategory.name} (${newCategory.id})`
+                    );
+                  }
                 } catch (categoryError) {
                   // If category creation fails (e.g., duplicate name), try to find existing
                   console.warn(

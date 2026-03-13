@@ -176,6 +176,12 @@ export const createCategoryRouter = () => {
     const body = c.req.valid('json');
 
     try {
+      const existingCategory = await container.categoryRepo.findByNameForUser(body.name, user.id);
+
+      if (existingCategory) {
+        return c.json({ error: 'Category with this name already exists' }, 400);
+      }
+
       const category = await container.categoryRepo.create({
         id: crypto.randomUUID(),
         userId: user.id,

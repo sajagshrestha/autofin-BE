@@ -217,15 +217,24 @@ export const createTransactionRouter = () => {
     // Handle new category creation
     if (txn.newCategory) {
       try {
-        const newCat = await container.categoryRepo.create({
-          id: crypto.randomUUID(),
-          userId: user.id,
-          name: txn.newCategory.name,
-          icon: txn.newCategory.icon,
-          isDefault: false,
-          isAiCreated: true,
-        });
-        categoryId = newCat.id;
+        const existing = await container.categoryRepo.findByNameForUser(
+          txn.newCategory.name,
+          user.id
+        );
+
+        if (existing) {
+          categoryId = existing.id;
+        } else {
+          const newCat = await container.categoryRepo.create({
+            id: crypto.randomUUID(),
+            userId: user.id,
+            name: txn.newCategory.name,
+            icon: txn.newCategory.icon,
+            isDefault: false,
+            isAiCreated: true,
+          });
+          categoryId = newCat.id;
+        }
       } catch (err) {
         console.warn('Failed to create AI category:', err);
         const existing = await container.categoryRepo.findByNameForUser(

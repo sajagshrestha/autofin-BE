@@ -35,3 +35,6 @@ drizzle/
 # OS
 .DS_Store
 Thumbs.db
+
+# supabase
+supabase/

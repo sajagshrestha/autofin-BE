@@ -13,6 +13,22 @@ export interface CategoryInfo {
   icon: string | null;
 }
 
+function normalizeCategoryName(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function findCategoryByName(
+  value: string,
+  categories: Iterable<CategoryInfo>
+): CategoryInfo | undefined {
+  const normalizedValue = normalizeCategoryName(value);
+  if (!normalizedValue) return undefined;
+
+  return Array.from(categories).find(
+    (category) => normalizeCategoryName(category.name) === normalizedValue
+  );
+}
+
 /**
  * Resolve a category reference (ID or name) from the model to a valid category ID.
  * The model sometimes returns category name instead of ID; we accept either and resolve here.
@@ -25,9 +41,7 @@ function resolveCategoryId(
   if (!value || typeof value !== 'string') return uncategorized?.id ?? null;
   const trimmed = value.trim();
   if (categoryMap.has(trimmed)) return trimmed;
-  const byName = Array.from(categoryMap.values()).find(
-    (c) => c.name.toLowerCase() === trimmed.toLowerCase()
-  );
+  const byName = findCategoryByName(trimmed, categoryMap.values());
   if (byName) return byName.id;
   return uncategorized?.id ?? null;
 }
@@ -363,14 +377,24 @@ export class TransactionExtractorService {
             `No new category name – using Uncategorized: ${categoryName} (${categoryId})`
           );
         } else {
-          newCategory = {
-            name,
-            icon: categoryAction.newCategoryIcon,
-          };
-          categoryName = name;
-          console.log(
-            `AI suggests new category: ${categoryAction.newCategoryIcon} ${name}${categoryAction.reason ? ` - Reason: ${categoryAction.reason}` : ''}`
-          );
+          const existingCategory = findCategoryByName(name, availableCategories);
+
+          if (existingCategory) {
+            categoryId = existingCategory.id;
+            categoryName = existingCategory.name;
+            console.log(
+              `AI suggested new category "${name}" but matched existing category: ${categoryName} (${categoryId})`
+            );
+          } else {
+            newCategory = {
+              name,
+              icon: categoryAction.newCategoryIcon,
+            };
+            categoryName = name;
+            console.log(
+              `AI suggests new category: ${categoryAction.newCategoryIcon} ${name}${categoryAction.reason ? ` - Reason: ${categoryAction.reason}` : ''}`
+            );
+          }
         }
       }
 
@@ -477,11 +501,18 @@ export class TransactionExtractorService {
           categoryId = uncategorized?.id ?? null;
           categoryName = uncategorized?.name ?? 'Uncategorized';
         } else {
-          newCategory = {
-            name,
-            icon: categoryAction.newCategoryIcon,
-          };
-          categoryName = name;
+          const existingCategory = findCategoryByName(name, availableCategories);
+
+          if (existingCategory) {
+            categoryId = existingCategory.id;
+            categoryName = existingCategory.name;
+          } else {
+            newCategory = {
+              name,
+              icon: categoryAction.newCategoryIcon,
+            };
+            categoryName = name;
+          }
         }
       }
 
